@@ -3,14 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Fun House</title>
+    <title>The Fun House - Chapter 1: The Jester</title>
     <style>
         :root {
-            --neon-pink: #ff007f;
-            --neon-blue: #00f3ff;
+            --playtime-blue: #0055ff;
+            --playtime-yellow: #ffd700;
             --blood-red: #8b0000;
             --dark-bg: #050505;
-            --text-color: #d3d3d3;
         }
 
         body {
@@ -18,263 +17,159 @@
             overflow: hidden;
             background-color: var(--dark-bg);
             font-family: 'Courier New', Courier, monospace;
-            color: var(--text-color);
+            color: #fff;
             user-select: none;
+            cursor: none;
         }
 
-        #game-canvas {
-            display: block;
-            width: 100vw;
-            height: 100vh;
-        }
+        #game-canvas { display: block; width: 100vw; height: 100vh; }
 
-        /* UI Layers */
         .ui-layer {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            pointer-events: none;
-            z-index: 10;
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 10;
         }
-
         .ui-layer.interactive { pointer-events: auto; }
 
         /* Main Menu */
         #main-menu {
-            background: radial-gradient(circle at center, #1a0a0a 0%, #000000 100%);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            transition: opacity 1s;
+            background: linear-gradient(180deg, #0a0a0a 0%, #1a0505 100%);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
         }
-
-        #main-menu h1 {
-            font-size: 6rem;
-            margin: 0;
-            text-transform: uppercase;
-            letter-spacing: 10px;
-            color: transparent;
-            -webkit-text-stroke: 2px var(--neon-pink);
-            text-shadow: 0 0 20px rgba(255, 0, 127, 0.5);
-            animation: glitchTitle 3s infinite;
+        .menu-title {
+            font-size: 8rem; font-weight: 900; margin: 0; line-height: 1;
+            color: var(--playtime-blue);
+            text-shadow: 4px 4px 0px var(--playtime-yellow);
+            font-style: italic;
+            transform: skewX(-10deg);
         }
-
-        #main-menu button {
-            background: transparent;
-            border: 2px solid var(--neon-pink);
-            color: var(--neon-pink);
-            padding: 15px 40px;
-            font-size: 1.5rem;
-            font-family: inherit;
-            cursor: pointer;
-            margin-top: 20px;
-            transition: all 0.3s;
-            text-transform: uppercase;
+        .menu-sub {
+            font-size: 2rem; color: var(--playtime-yellow); margin-bottom: 50px;
+            letter-spacing: 5px; text-transform: uppercase;
         }
-
-        #main-menu button:hover {
-            background: var(--neon-pink);
-            color: #000;
-            box-shadow: 0 0 20px var(--neon-pink);
+        .menu-btn {
+            background: var(--playtime-blue); border: none; color: #fff;
+            padding: 15px 60px; font-size: 1.5rem; font-family: inherit;
+            font-weight: bold; cursor: pointer; margin: 10px;
+            clip-path: polygon(10% 0, 100% 0, 100% 70%, 90% 100%, 0 100%, 0 30%);
+            transition: all 0.2s;
         }
-
-        @keyframes glitchTitle {
-            0% { transform: translate(0); }
-            20% { transform: translate(-2px, 2px); }
-            40% { transform: translate(-2px, -2px); }
-            60% { transform: translate(2px, 2px); }
-            80% { transform: translate(2px, -2px); }
-            100% { transform: translate(0); }
-        }
+        .menu-btn:hover { background: var(--playtime-yellow); color: #000; transform: scale(1.05); }
 
         /* HUD */
-        #hud {
-            display: none;
-        }
-
+        #hud { display: none; }
         #crosshair {
-            position: absolute;
-            top: 50%; left: 50%;
-            width: 4px; height: 4px;
-            background: rgba(255,255,255,0.8);
-            border-radius: 50%;
+            position: absolute; top: 50%; left: 50%; width: 10px; height: 10px;
+            border: 2px solid rgba(255,255,255,0.8); border-radius: 50%;
             transform: translate(-50%, -50%);
-            box-shadow: 0 0 5px #fff;
         }
-
+        #crosshair::after {
+            content: ''; position: absolute; top: 50%; left: 50%;
+            width: 2px; height: 2px; background: #fff; border-radius: 50%;
+            transform: translate(-50%, -50%);
+        }
         #interact-prompt {
-            position: absolute;
-            bottom: 30%;
-            left: 50%;
-            transform: translateX(-50%);
-            font-size: 1.2rem;
-            color: var(--neon-blue);
-            text-shadow: 0 0 5px var(--neon-blue);
-            opacity: 0;
-            transition: opacity 0.2s;
+            position: absolute; bottom: 35%; left: 50%; transform: translateX(-50%);
+            font-size: 1.4rem; color: var(--playtime-yellow);
+            text-shadow: 2px 2px 0 #000; opacity: 0; transition: opacity 0.2s;
+            background: rgba(0,0,0,0.5); padding: 5px 15px;
         }
-
         #inventory-bar {
-            position: absolute;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            display: flex;
-            gap: 10px;
-            background: rgba(0,0,0,0.7);
-            padding: 10px;
-            border: 1px solid #333;
+            position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
+            display: flex; gap: 5px;
         }
-
         .inv-slot {
-            width: 50px; height: 50px;
-            border: 1px solid #555;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
-            background: rgba(20,20,20,0.8);
+            width: 60px; height: 60px; border: 3px solid #fff; background: rgba(0,0,0,0.7);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 30px; color: #fff;
+        }
+        #grabpack-hand {
+            position: absolute; bottom: 0; right: 0; width: 200px; height: 200px;
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="%230055ff" stroke="%23ffd700" stroke-width="5"/><rect x="45" y="10" width="10" height="30" fill="%23ffd700"/></svg>') no-repeat bottom right;
+            background-size: contain; pointer-events: none;
         }
 
-        #battery-indicator {
-            position: absolute;
-            bottom: 90px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 100px;
-            height: 10px;
-            border: 1px solid #fff;
-        }
-
-        #battery-fill {
-            height: 100%;
-            background: #fff;
-            width: 100%;
-            transition: width 0.1s, background 0.5s;
-        }
-
-        /* VHS Overlay */
+        /* VHS & Cutscene Overlays */
         #vhs-overlay {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: repeating-linear-gradient(
-                0deg,
-                rgba(0, 0, 0, 0.15) 0px,
-                rgba(0, 0, 0, 0.15) 1px,
-                transparent 1px,
-                transparent 2px
-            );
-            pointer-events: none;
-            opacity: 0.4;
-            mix-blend-mode: overlay;
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.2) 0px, rgba(0, 0, 0, 0.2) 1px, transparent 1px, transparent 3px);
+            pointer-events: none; opacity: 0.6; mix-blend-mode: overlay;
         }
+        #vhs-track {
+            position: absolute; top: 0; left: 0; width: 100%; height: 5px;
+            background: rgba(255,255,255,0.3); animation: trackMove 4s linear infinite;
+            pointer-events: none;
+        }
+        @keyframes trackMove { 0% { top: 0%; } 100% { top: 100%; } }
 
-        #vhs-text {
-            position: absolute;
-            top: 20px; right: 20px;
-            color: #ff0000;
-            font-size: 1.2rem;
-            opacity: 0;
-            transition: opacity 0.5s;
+        #cutscene-ui {
+            position: absolute; bottom: 50px; left: 50px; right: 50px; display: none;
+        }
+        #speaker-name {
+            color: var(--playtime-yellow); font-size: 1.5rem; font-weight: bold; margin-bottom: 5px;
+            text-shadow: 2px 2px 0 #000;
+        }
+        #dialogue-text {
+            font-size: 1.8rem; line-height: 1.4; background: rgba(0,0,0,0.8);
+            padding: 20px; border-left: 5px solid var(--playtime-blue);
+        }
+        #skip-btn {
+            position: absolute; top: 20px; right: 20px; background: none;
+            border: 2px solid #fff; color: #fff; padding: 10px 20px;
+            font-family: inherit; font-size: 1rem; cursor: pointer;
         }
 
         /* Jumpscare */
-        #jumpscare-screen {
-            background: #000;
-            display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 100;
-        }
-
-        #jumpscare-img {
-            font-size: 15rem;
-            animation: jumpAnim 0.1s infinite;
-        }
-
-        @keyframes jumpAnim {
-            0% { transform: translate(-5px, -5px) scale(1.1); }
-            25% { transform: translate(5px, -5px) scale(1.2); }
-            50% { transform: translate(-5px, 5px) scale(1.1); }
-            75% { transform: translate(5px, 5px) scale(1.2); }
-            100% { transform: translate(-5px, -5px) scale(1.1); }
-        }
+        #jumpscare-screen { background: #000; display: none; align-items: center; justify-content: center; z-index: 100; }
+        #jumpscare-img { font-size: 20rem; animation: jumpAnim 0.05s infinite; }
+        @keyframes jumpAnim { 0% { transform: translate(-10px, -10px) scale(1.2); } 50% { transform: translate(10px, 10px) scale(1.3); } 100% { transform: translate(-10px, -10px) scale(1.2); } }
 
         /* Pause Menu */
-        #pause-menu {
-            background: rgba(0,0,0,0.8);
-            display: none;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-        }
-
-        /* Lore Note */
-        #lore-note {
-            position: absolute;
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            width: 400px;
-            background: #f4e4bc;
-            color: #000;
-            padding: 20px;
-            font-family: 'Times New Roman', serif;
-            box-shadow: 0 0 20px rgba(0,0,0,0.8);
-            display: none;
-            pointer-events: auto;
-        }
-
-        #lore-note h3 { margin-top: 0; text-align: center; border-bottom: 1px solid #000; padding-bottom: 5px;}
-        #lore-note p { font-size: 1.1rem; line-height: 1.5; font-style: italic; }
+        #pause-menu { background: rgba(0,0,0,0.9); display: none; flex-direction: column; align-items: center; justify-content: center; }
     </style>
 </head>
 <body>
 
     <div id="game-canvas"></div>
-
-    <!-- VHS Effect Overlay -->
     <div id="vhs-overlay"></div>
-    <div id="vhs-text">● REC</div>
+    <div id="vhs-track"></div>
 
-    <!-- Main Menu UI -->
+    <!-- Main Menu -->
     <div id="main-menu" class="ui-layer interactive">
-        <h1>The Fun House</h1>
-        <button id="btn-start">Start Game</button>
-        <button id="btn-settings">Settings</button>
-        <button id="btn-quit">Quit</button>
+        <div class="menu-title">THE FUN<br>HOUSE</div>
+        <div class="menu-sub">Chapter 1: The Jester</div>
+        <button class="menu-btn" id="btn-play">PLAY</button>
+        <button class="menu-btn" id="btn-quit">QUIT</button>
     </div>
 
-    <!-- HUD UI -->
+    <!-- HUD -->
     <div id="hud" class="ui-layer">
         <div id="crosshair"></div>
         <div id="interact-prompt">[E] Interact</div>
-        <div id="battery-indicator"><div id="battery-fill"></div></div>
         <div id="inventory-bar">
             <div class="inv-slot" id="slot-1"></div>
             <div class="inv-slot" id="slot-2"></div>
-            <div class="inv-slot" id="slot-3"></div>
         </div>
+        <div id="grabpack-hand"></div>
     </div>
 
-    <!-- Lore Note UI -->
-    <div id="lore-note" class="ui-layer">
-        <h3>Scraps of Paper</h3>
-        <p id="lore-text">It watches from the mirrors. Don't look at your reflection.</p>
-        <button style="display:block; margin:10px auto 0; background:none; border:1px solid black; cursor:pointer;">Close</button>
+    <!-- Cutscene UI -->
+    <div id="cutscene-ui" class="ui-layer interactive">
+        <div id="speaker-name">SYSTEM</div>
+        <div id="dialogue-text">Loading...</div>
+        <button id="skip-btn">SKIP >></button>
     </div>
 
-    <!-- Jumpscare UI -->
+    <!-- Jumpscare -->
     <div id="jumpscare-screen" class="ui-layer interactive">
-        <div id="jumpscare-img">👹</div>
+        <div id="jumpscare-img">🤡</div>
     </div>
 
-    <!-- Pause UI -->
+    <!-- Pause -->
     <div id="pause-menu" class="ui-layer interactive">
         <h2>PAUSED</h2>
-        <button class="menu-btn" id="btn-resume">Resume</button>
+        <button class="menu-btn" id="btn-resume">RESUME</button>
     </div>
 
-    <!-- Import Map for Three.js -->
     <script type="importmap">
         {
             "imports": {
@@ -284,859 +179,696 @@
         }
     </script>
 
-    <!-- Main Game Script -->
     <script type="module">
         import * as THREE from 'three';
         import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
 
-        // --- GLOBAL VARIABLES & STATE ---
+        // --- GLOBALS ---
         const clock = new THREE.Clock();
-        let scene, camera, renderer, controls;
+        let scene, camera, renderer, controls, cutsceneCamera;
         
         const state = {
-            isPlaying: false,
+            phase: 'MENU', // MENU, CUTSCENE, GAMEPLAY, JUMPSCARED, DEAD, WIN
             isPaused: false,
-            isJumpscared: false,
-            health: 100,
-            battery: 100,
-            flashlightOn: true,
-            moveForward: false,
-            moveBackward: false,
-            moveLeft: false,
-            moveRight: false,
-            isSprinting: false,
-            isCrouching: false,
-            velocity: new THREE.Vector3(),
-            direction: new THREE.Vector3(),
-            inventory: [],
-            maxInventory: 3,
-            currentCode: [], // The solution
-            playerCode: [],  // What player typed
-            doorOpen: false,
-            enemyActive: false,
-            isHiding: false
+            moveForward: false, moveBackward: false, moveLeft: false, moveRight: false,
+            isSprinting: false, isCrouching: false,
+            velocity: new THREE.Vector3(), direction: new THREE.Vector3(),
+            inventory: [], maxInventory: 2,
+            currentPuzzleCode: [], playerEnteredCode: [],
+            hasGrabPack: false, isFiringGrabPack: false,
+            enemyActive: false, enemyState: 'idle', isHiding: false
         };
 
-        // Audio Context
         let audioCtx, masterGain;
-
-        // Game Objects
         let flashlight, flashlightTarget;
         let interactables = [];
-        let enemyMesh;
-        let enemyState = 'patrol'; // patrol, chase, search
-        let enemySpeed = 3;
-        let enemyPath = [];
-        let enemyPathIndex = 0;
-        let hideSpots = [];
+        let enemyMesh, enemyPath = [], enemyPathIdx = 0;
+        let grabPackWire, grabPackTarget; // Visuals for the GrabPack laser
 
-        // DOM Elements
+        // DOM
         const menuEl = document.getElementById('main-menu');
         const hudEl = document.getElementById('hud');
         const promptEl = document.getElementById('interact-prompt');
-        const batteryFill = document.getElementById('battery-fill');
-        const loreNoteEl = document.getElementById('lore-note');
-        const loreTextEl = document.getElementById('lore-text');
+        const cutsceneUi = document.getElementById('cutscene-ui');
+        const speakerEl = document.getElementById('speaker-name');
+        const dialogueEl = document.getElementById('dialogue-text');
         const jumpscareEl = document.getElementById('jumpscare-screen');
         const pauseEl = document.getElementById('pause-menu');
-        const vhsText = document.getElementById('vhs-text');
 
-        // --- INITIALIZATION ---
+        // --- INIT ---
         function init() {
-            // Scene
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0x050505);
-            scene.fog = new THREE.FogExp2(0x000000, 0.025);
+            scene.fog = new THREE.FogExp2(0x000000, 0.02);
 
-            // Camera
-            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 100);
-            camera.position.set(0, 1.7, 0); // Eye height
+            camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 100);
+            camera.position.set(0, 1.7, 5);
 
-            // Renderer
-            renderer = new THREE.WebGLRenderer({ antialias: false }); // Low poly, no AA needed
+            // Cutscene Camera
+            cutsceneCamera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 100);
+            cutsceneCamera.position.set(0, 3, 15);
+
+            renderer = new THREE.WebGLRenderer({ antialias: false });
             renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.setPixelRatio(window.devicePixelRatio);
             renderer.shadowMap.enabled = true;
             renderer.shadowMap.type = THREE.PCFSoftShadowMap;
             renderer.toneMapping = THREE.ACESFilmicToneMapping;
-            renderer.toneMappingExposure = 0.8;
+            renderer.toneMappingExposure = 0.6;
             document.getElementById('game-canvas').appendChild(renderer.domElement);
 
-            // Controls
             controls = new PointerLockControls(camera, document.body);
 
-            // Lighting
             setupLighting();
-
-            // Environment
-            buildFunHouse();
-
-            // Flashlight
+            buildPlaytimeStyleMap();
             setupFlashlight();
-
-            // Enemy
             setupEnemy();
-
-            // Events
+            setupGrabPackVisuals();
             setupEventListeners();
-
-            // Randomize Puzzle
             randomizePuzzle();
 
-            // Start Loop
             animate();
         }
 
-        // --- AUDIO SYSTEM ---
+        // --- AUDIO ---
         function initAudio() {
             audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             masterGain = audioCtx.createGain();
-            masterGain.gain.value = 0.4;
+            masterGain.gain.value = 0.5;
             masterGain.connect(audioCtx.destination);
         }
 
-        // Generates a jumpscare or ambient sound procedurally
+        // Robotic Voice Synthesis for Cutscenes
+        function speakDialogue(text) {
+            if (!audioCtx) return;
+            const synth = window.speechSynthesis;
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.pitch = 0.8; // Deep voice
+            utterance.rate = 0.9;
+            utterance.volume = 1;
+            // Try to find a robotic or deep voice
+            const voices = synth.getVoices();
+            const selectedVoice = voices.find(v => v.name.includes('Male') || v.name.includes('Daniel') || v.name.includes('Google UK English Male')) || voices[0];
+            if(selectedVoice) utterance.voice = selectedVoice;
+            synth.speak(utterance);
+        }
+
         function playSound(type) {
             if (!audioCtx) return;
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
-            
-            osc.connect(gain);
-            gain.connect(masterGain);
+            osc.connect(gain); gain.connect(masterGain);
 
-            if (type === 'jumpscare') {
-                osc.type = 'sawtooth';
-                osc.frequency.setValueAtTime(150, audioCtx.currentTime);
-                osc.frequency.exponentialRampToValueAtTime(2000, audioCtx.currentTime + 0.5);
+            if (type === 'grabpack_shoot') {
+                osc.type = 'sawtooth'; osc.frequency.setValueAtTime(400, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.2);
+                gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.3);
+            } else if (type === 'toy_ambience') {
+                // Creepy music box
+                const notes = [523.25, 659.25, 783.99, 659.25]; // C5 E5 G5 E5
+                notes.forEach((freq, i) => {
+                    const o = audioCtx.createOscillator();
+                    const g = audioCtx.createGain();
+                    o.type = 'sine'; o.frequency.value = freq;
+                    g.gain.setValueAtTime(0, audioCtx.currentTime + i*0.5);
+                    g.gain.linearRampToValueAtTime(0.1, audioCtx.currentTime + i*0.5 + 0.1);
+                    g.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + i*0.5 + 0.5);
+                    o.connect(g); g.connect(masterGain);
+                    o.start(audioCtx.currentTime + i*0.5);
+                    o.stop(audioCtx.currentTime + i*0.5 + 0.6);
+                });
+            } else if (type === 'jumpscare') {
+                osc.type = 'sawtooth'; osc.frequency.setValueAtTime(100, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(3000, audioCtx.currentTime + 0.4);
                 gain.gain.setValueAtTime(1, audioCtx.currentTime);
                 gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 1);
                 osc.start(); osc.stop(audioCtx.currentTime + 1);
-            } else if (type === 'whisper') {
-                // White noise buffer for whisper
-                const bufferSize = 2 * audioCtx.sampleRate;
-                const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-                const output = noiseBuffer.getChannelData(0);
-                for (let i = 0; i < bufferSize; i++) output[i] = Math.random() * 2 - 1;
-                
-                const whiteNoise = audioCtx.createBufferSource();
-                whiteNoise.buffer = noiseBuffer;
-                
-                const filter = audioCtx.createBiquadFilter();
-                filter.type = 'bandpass';
-                filter.frequency.value = 1000;
-                filter.Q.value = 0.5;
-
-                const noiseGain = audioCtx.createGain();
-                noiseGain.gain.setValueAtTime(0, audioCtx.currentTime);
-                noiseGain.gain.linearRampToValueAtTime(0.1, audioCtx.currentTime + 1);
-                noiseGain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 3);
-
-                whiteNoise.connect(filter);
-                filter.connect(noiseGain);
-                noiseGain.connect(masterGain);
-                whiteNoise.start(); whiteNoise.stop(audioCtx.currentTime + 3);
-            } else if (type === 'click') {
-                osc.type = 'sine';
-                osc.frequency.value = 800;
-                gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
-                osc.start(); osc.stop(audioCtx.currentTime + 0.1);
             } else if (type === 'door') {
-                osc.type = 'triangle';
-                osc.frequency.setValueAtTime(100, audioCtx.currentTime);
-                osc.frequency.exponentialRampToValueAtTime(40, audioCtx.currentTime + 1);
-                gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
+                osc.type = 'triangle'; osc.frequency.setValueAtTime(80, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(40, audioCtx.currentTime + 1.5);
+                gain.gain.setValueAtTime(0.6, audioCtx.currentTime);
                 gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 1.5);
                 osc.start(); osc.stop(audioCtx.currentTime + 1.5);
             }
         }
 
-        // --- LIGHTING & FLASHLIGHT ---
-        function setupLighting() {
-            const ambient = new THREE.AmbientLight(0x111111, 0.5);
-            scene.add(ambient);
+        // --- CUTSCENE SYSTEM ---
+        let cutsceneQueue = [];
+        let currentCutscene = null;
+        let cutsceneTimer = 0;
 
-            // Flickering hallway light
-            const hallLight = new THREE.PointLight(0xff4400, 1, 15);
-            hallLight.position.set(0, 2.8, -5);
-            hallLight.castShadow = true;
-            scene.add(hallLight);
+        function playCutscene(script) {
+            state.phase = 'CUTSCENE';
+            cutsceneQueue = [...script];
+            nextCutsceneLine();
+            hudEl.style.display = 'none';
+            cutsceneUi.style.display = 'block';
+            if(controls.isLocked) controls.unlock();
+        }
+
+        function nextCutsceneLine() {
+            if (cutsceneQueue.length === 0) {
+                endCutscene();
+                return;
+            }
+            currentCutscene = cutsceneQueue.shift();
+            speakerEl.innerText = currentCutscene.speaker;
+            dialogueEl.innerText = "";
+            cutsceneTimer = 0;
             
-            // Animate flicker
-            setInterval(() => {
-                if(state.isPlaying) hallLight.intensity = Math.random() > 0.2 ? 1 : 0.1;
-            }, 100);
+            if(currentCutscene.voice) speakDialogue(currentCutscene.text);
+        }
+
+        function updateCutscene(delta) {
+            if (!currentCutscene) return;
+            cutsceneTimer += delta;
+
+            // Typewriter effect
+            if (dialogueEl.innerText.length < currentCutscene.text.length) {
+                dialogueEl.innerText += currentCutscene.text.charAt(dialogueEl.innerText.length);
+            }
+
+            // Camera Animation
+            if (currentCutscene.camMove) {
+                cutsceneCamera.position.lerp(currentCutscene.camMove.target, delta * 0.5);
+                cutsceneCamera.lookAt(currentCutscene.camMove.lookAt || new THREE.Vector3(0,1.5,0));
+            }
+
+            // Auto advance or wait for click
+            if (dialogueEl.innerText.length === currentCutscene.text.length && cutsceneTimer > currentCutscene.text.length * 0.05 + 1) {
+                // Wait for user click or auto-advance
+            }
+        }
+
+        function advanceCutscene() {
+            if (dialogueEl.innerText.length < currentCutscene.text.length) {
+                dialogueEl.innerText = currentCutscene.text; // Skip typewriter
+            } else {
+                nextCutsceneLine();
+            }
+        }
+
+        function endCutscene() {
+            state.phase = 'GAMEPLAY';
+            cutsceneUi.style.display = 'none';
+            hudEl.style.display = 'block';
+            controls.lock();
+        }
+
+        // --- LIGHTING & GRABPACK VISUALS ---
+        function setupLighting() {
+            scene.add(new THREE.AmbientLight(0x404040, 0.3));
+            
+            // Poppy Playtime style bright staging lights
+            const stageLight = new THREE.SpotLight(0xffffff, 2, 30, Math.PI / 4, 0.5, 1);
+            stageLight.position.set(0, 5, -5);
+            stageLight.target.position.set(0, 0, -5);
+            stageLight.castShadow = true;
+            scene.add(stageLight, stageLight.target);
         }
 
         function setupFlashlight() {
-            flashlight = new THREE.SpotLight(0xffffff, 2, 20, Math.PI / 6, 0.5, 1.5);
+            flashlight = new THREE.SpotLight(0xffffff, 3, 15, Math.PI / 5, 0.4, 1.2);
             flashlight.castShadow = true;
-            flashlight.shadow.mapSize.width = 1024;
-            flashlight.shadow.mapSize.height = 1024;
-            
             flashlightTarget = new THREE.Object3D();
             flashlightTarget.position.set(0, 0, -1);
-            camera.add(flashlightTarget);
-            camera.add(flashlight);
+            camera.add(flashlightTarget); camera.add(flashlight);
             flashlight.target = flashlightTarget;
             scene.add(camera);
         }
 
-        // --- ENVIRONMENT BUILDER (PROCEDURAL LOW-POLY) ---
-        function buildFunHouse() {
-            const texLoader = new THREE.TextureLoader();
+        function setupGrabPackVisuals() {
+            const wireMat = new THREE.LineBasicMaterial({ color: 0x0055ff, linewidth: 2 });
+            const wireGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]);
+            grabPackWire = new THREE.Line(wireGeo, wireMat);
+            grabPackWire.visible = false;
+            scene.add(grabPackWire);
             
-            // PBR-ish Procedural Textures
-            const floorTex = createDirtyTexture(0x333333, 0x222222);
-            const wallTex = createDirtyTexture(0x8b0000, 0x4a0000); // Peeling dark red paint
-            const ceilTex = createDirtyTexture(0x111111, 0x000000);
+            grabPackTarget = new THREE.Mesh(
+                new THREE.SphereGeometry(0.1, 8, 8),
+                new THREE.MeshBasicMaterial({ color: 0x0055ff })
+            );
+            grabPackTarget.visible = false;
+            scene.add(grabPackTarget);
+        }
 
-            const floorMat = new THREE.MeshStandardMaterial({ map: floorTex, roughness: 0.9 });
-            const wallMat = new THREE.MeshStandardMaterial({ map: wallTex, roughness: 0.8 });
-            const ceilMat = new THREE.MeshStandardMaterial({ map: ceilTex, roughness: 1.0 });
-            const metalMat = new THREE.MeshStandardMaterial({ color: 0x555555, metalness: 0.8, roughness: 0.2 });
+        // --- ENVIRONMENT BUILDER (PLAYTIME STYLE) ---
+        function buildPlaytimeStyleMap() {
+            // Materials: Bright plastic, clean metal, playroom floor
+            const floorMat = new THREE.MeshStandardMaterial({ color: 0x3a8fd6, roughness: 0.8 }); // Blue playroom tiles
+            const wallMat = new THREE.MeshStandardMaterial({ color: 0xf0f0f0, roughness: 0.5 }); // Clean white walls
+            const darkWallMat = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.9 }); // Destroyed section
+            const metalMat = new THREE.MeshStandardMaterial({ color: 0xaaaaaa, metalness: 0.8, roughness: 0.2 });
 
             // Floor
-            const floor = new THREE.Mesh(new THREE.PlaneGeometry(30, 30), floorMat);
-            floor.rotation.x = -Math.PI / 2;
-            floor.receiveShadow = true;
+            const floor = new THREE.Mesh(new THREE.PlaneGeometry(40, 40), floorMat);
+            floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true;
             scene.add(floor);
 
             // Ceiling
-            const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(30, 30), ceilMat);
-            ceiling.rotation.x = Math.PI / 2;
-            ceiling.position.y = 3;
+            const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(40, 40), wallMat);
+            ceiling.rotation.x = Math.PI / 2; ceiling.position.y = 4;
             scene.add(ceiling);
 
-            // Walls Generator (Modular)
-            const createWall = (w, h, d, x, y, z, ry = 0) => {
-                const wall = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), wallMat);
-                wall.position.set(x, y, z);
-                wall.rotation.y = ry;
-                wall.castShadow = true;
-                wall.receiveShadow = true;
-                scene.add(wall);
-                return wall;
+            const createWall = (w, h, d, x, y, z, mat = wallMat) => {
+                const wall = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+                wall.position.set(x, y, z); wall.castShadow = true; wall.receiveShadow = true;
+                scene.add(wall); return wall;
             };
 
-            // Room Layout: Entrance (0 to -10), Main Hall (-10 to -25), Exit Door (-25)
-            // Left Wall
-            createWall(30, 3, 0.2, -5, 1.5, -12.5);
-            // Right Wall
-            createWall(30, 3, 0.2, 5, 1.5, -12.5);
-            // Back Wall
-            createWall(10.2, 3, 0.2, 0, 1.5, -27.5);
-            // Front Wall (with gap for start)
-            createWall(4, 3, 0.2, -3, 1.5, 2.5);
-            createWall(4, 3, 0.2, 3, 1.5, 2.5);
-            createWall(2, 1, 0.2, 0, 2.5, 2.5); // Top part of front
+            // --- SECTION 1: ENTRANCE (Bright, normal toy factory) ---
+            // Left/Right walls
+            createWall(40, 4, 0.2, -6, 2, -15);
+            createWall(40, 4, 0.2, 6, 2, -15);
 
-            // Dividers for Main Hall
-            createWall(4, 3, 0.2, -3, 1.5, -10);
-            createWall(4, 3, 0.2, 3, 1.5, -10);
-            
-            // EXIT DOOR FRAME
-            createWall(2, 3, 0.2, -2, 1.5, -25);
-            createWall(2, 3, 0.2, 2, 1.5, -25);
-
-            // --- PROPS & INTERACTABLES ---
-
-            // 1. Keycard on table
-            const table = new THREE.Mesh(new THREE.BoxGeometry(1, 0.8, 0.5), metalMat);
-            table.position.set(-2, 0.4, -2);
-            table.castShadow = true;
-            scene.add(table);
-
-            const keycard = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.05, 0.1), 
-                new THREE.MeshStandardMaterial({ color: 0x00ffff, emissive: 0x00ffff, emissiveIntensity: 0.5 }));
-            keycard.position.set(-2, 0.85, -2);
-            scene.add(keycard);
-            interactables.push({ 
-                id: 'keycard', obj: keycard, type: 'pickup', 
-                name: 'Blue Keycard', icon: '🔵', 
-                action: () => addItemToInventory('keycard', 'Blue Keycard', '🔵')
-            });
-
-            // 2. Door to Main Hall
-            const door1 = new THREE.Mesh(new THREE.BoxGeometry(2, 2.5, 0.1), 
-                new THREE.MeshStandardMaterial({ color: 0x444444, metalness: 0.5, roughness: 0.5 }));
-            door1.position.set(0, 1.25, -9.9);
-            door1.castShadow = true;
-            scene.add(door1);
-            interactables.push({
-                id: 'door1', obj: door1, type: 'door',
-                name: 'Main Hall Door', locked: true, requiredItem: 'keycard',
-                action: () => openDoor(door1, 'keycard', -10) // Move door down into floor
-            });
-
-            // 3. Code Puzzle Terminal
-            const terminal = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1.2, 0.1), 
-                new THREE.MeshStandardMaterial({ color: 0x111111, emissive: 0x003300, emissiveIntensity: 0.2 }));
-            terminal.position.set(-4.8, 1.5, -18);
-            terminal.rotation.y = Math.PI / 2;
-            scene.add(terminal);
-            interactables.push({
-                id: 'terminal', obj: terminal, type: 'puzzle',
-                name: 'Security Terminal',
-                action: () => showPuzzleUI()
-            });
-
-            // Holographic numbers floating near terminal (Visuals only, interaction is UI based)
-            for(let i=0; i<4; i++) {
-                const numGeo = new THREE.BoxGeometry(0.3, 0.5, 0.1);
-                const numMat = new THREE.MeshStandardMaterial({ color: 0x00ff00, emissive: 0x00ff00, emissiveIntensity: 0.8, transparent: true, opacity: 0.8 });
-                const num = new THREE.Mesh(numGeo, numMat);
-                num.position.set(-4.5 + i*0.4, 1.5, -17.8);
-                num.rotation.y = Math.PI / 2;
-                scene.add(num);
+            // Skyline Cutscene Object
+            const skyline = new THREE.Group();
+            for(let i=0; i<5; i++) {
+                const h = Math.random() * 3 + 1;
+                const build = new THREE.Mesh(new THREE.BoxGeometry(1.5, h, 1.5), new THREE.MeshStandardMaterial({color: 0x1a1a1a}));
+                build.position.set(-3 + i*1.6, h/2, -25);
+                skyline.add(build);
             }
+            scene.add(skyline);
 
-            // 4. Clue Note
-            const note = new THREE.Mesh(new THREE.PlaneGeometry(0.3, 0.4), 
-                new THREE.MeshStandardMaterial({ color: 0xf4e4bc, side: THREE.DoubleSide }));
-            note.position.set(2, 1.2, -5);
-            note.rotation.y = -Math.PI / 2;
-            scene.add(note);
+            // GrabPack Pedestal
+            const pedestal = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.6, 1, 16), metalMat);
+            pedestal.position.set(0, 0.5, -2); scene.add(pedestal);
+            
+            const grabPackBox = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.8, 0.8), 
+                new THREE.MeshStandardMaterial({color: 0x0055ff, emissive: 0x0055ff, emissiveIntensity: 0.3}));
+            grabPackBox.position.set(0, 1.4, -2);
+            scene.add(grabPackBox);
             interactables.push({
-                id: 'note1', obj: note, type: 'lore',
-                name: 'Old Note',
-                action: () => {
-                    loreTextEl.innerText = "The mirrors are lying. The code is hidden where the clown sleeps. (Look behind the statue)";
-                    loreNoteEl.style.display = 'block';
+                id: 'grabpack', obj: grabPackBox, type: 'pickup', name: 'GrabPack',
+                icon: '🤖', action: () => {
+                    addItemToInventory('grabpack', 'GrabPack', '🤖');
+                    state.hasGrabPack = true;
+                    triggerGrabPackCutscene();
                 }
             });
 
-            // 5. Clown Statue (Hides the code)
-            const clownGroup = new THREE.Group();
-            const clownBody = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.4, 1.2, 8), 
-                new THREE.MeshStandardMaterial({ color: 0xffaa00 }));
-            const clownHead = new THREE.Mesh(new THREE.SphereGeometry(0.3, 8, 8), 
-                new THREE.MeshStandardMaterial({ color: 0xffcccc }));
-            const clownNose = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 8), 
-                new THREE.MeshStandardMaterial({ color: 0xff0000, emissive: 0xff0000, emissiveIntensity: 0.5 }));
-            clownHead.position.y = 0.9;
-            clownNose.position.set(0, 0.9, 0.3);
-            clownGroup.add(clownBody, clownHead, clownNose);
-            clownGroup.position.set(3, 0.6, -20);
-            clownGroup.castShadow = true;
-            scene.add(clownGroup);
+            // --- SECTION 2: PUZZLE ROOM (Darker, ruined) ---
+            // Dividing wall with cutout for door
+            createWall(5, 4, 0.2, -3.5, 2, -10);
+            createWall(5, 4, 0.2, 3.5, 2, -10);
+            createWall(2, 1, 0.2, 0, 3.5, -10); // Top part
 
-            // The actual code is "projected" behind the statue as floating text (using basic shapes)
-            const codeIndicator = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 0.2), 
-                new THREE.MeshBasicMaterial({ color: 0xff0000, transparent: true, opacity: 0.0, side: THREE.DoubleSide }));
-            codeIndicator.position.set(3.4, 1.2, -20.5);
-            codeIndicator.rotation.y = Math.PI/2;
-            scene.add(codeIndicator);
+            // Change floor/wall color past here to dark
+            const darkFloor = new THREE.Mesh(new THREE.PlaneGeometry(20, 30), new THREE.MeshStandardMaterial({color: 0x111111, roughness: 1}));
+            darkFloor.rotation.x = -Math.PI / 2; darkFloor.position.set(0, 0.01, -20); scene.add(darkFloor);
+            
+            createWall(20, 4, 0.2, -6, 2, -20, darkWallMat);
+            createWall(20, 4, 0.2, 6, 2, -20, darkWallMat);
+            createWall(12.2, 4, 0.2, 0, 2, -30, darkWallMat);
+
+            // Heavy Door (Requires GrabPack to pull switch)
+            const puzzleDoor = new THREE.Mesh(new THREE.BoxGeometry(4, 4, 0.5), 
+                new THREE.MeshStandardMaterial({color: 0x444444, metalness: 0.5}));
+            puzzleDoor.position.set(0, 2, -9.5);
+            scene.add(puzzleDoor);
+            interactables.push({
+                id: 'puzzle_door', obj: puzzleDoor, type: 'door', name: 'Security Door',
+                locked: true, action: () => { promptEl.innerText = "Requires Power"; setTimeout(()=>promptEl.innerText="", 2000); }
+            });
+
+            // Power Switch (Across a gap, must use GrabPack)
+            const switchBase = new THREE.Mesh(new THREE.BoxGeometry(0.5, 1, 0.5), metalMat);
+            switchBase.position.set(4, 0.5, -14); scene.add(switchBase);
+            const switchHandle = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.8, 8), 
+                new THREE.MeshStandardMaterial({color: 0xff0000, emissive: 0xff0000, emissiveIntensity: 0.5}));
+            switchHandle.position.set(4, 1.5, -14); switchHandle.rotation.z = Math.PI / 4;
+            scene.add(switchHandle);
             
             interactables.push({
-                id: 'clown', obj: clownBody, type: 'clue',
-                name: 'Clown Statue',
+                id: 'power_switch', obj: switchHandle, type: 'grabpack_target', name: 'Power Switch',
                 action: () => {
-                    // Reveal code visually
-                    codeIndicator.material.opacity = 1.0;
-                    codeIndicator.material.color.set(0xff0000);
-                    alert(`You found a carving: ${state.currentCode.join(' - ')}`);
+                    switchHandle.rotation.z = -Math.PI / 4; // Flip switch
+                    playSound('door');
+                    // Open puzzle door
+                    const anim = () => {
+                        if(puzzleDoor.position.y > -2) { puzzleDoor.position.y -= 0.1; requestAnimationFrame(anim); }
+                        else { state.enemyActive = true; triggerEnemyIntroCutscene(); }
+                    }; anim();
                 }
             });
 
-            // 6. Exit Door
-            const exitDoor = new THREE.Mesh(new THREE.BoxGeometry(2.5, 2.8, 0.2), 
-                new THREE.MeshStandardMaterial({ color: 0x8b0000, roughness: 0.6 }));
-            exitDoor.position.set(0, 1.4, -24.9);
-            exitDoor.castShadow = true;
-            scene.add(exitDoor);
+            // Toy Train (Puzzle element to move)
+            const trainCart = new THREE.Mesh(new THREE.BoxGeometry(2, 1, 1), new THREE.MeshStandardMaterial({color: 0xffd700}));
+            trainCart.position.set(0, 0.5, -18); scene.add(trainCart);
+
+            // Color Code Keypad
+            const keypad = new THREE.Mesh(new THREE.BoxGeometry(1, 1.5, 0.1), new THREE.MeshStandardMaterial({color: 0x333333}));
+            keypad.position.set(-5.8, 2, -25); keypad.rotation.y = Math.PI/2;
+            scene.add(keypad);
             interactables.push({
-                id: 'exit_door', obj: exitDoor, type: 'door',
-                name: 'Exit Door', locked: true, requiredItem: 'code',
+                id: 'keypad', obj: keypad, type: 'puzzle', name: 'Color Keypad',
                 action: () => {
-                    if(state.playerCode.join('') === state.currentCode.join('')) {
-                        openDoor(exitDoor, 'code', -10);
-                        triggerWin();
-                    } else {
-                        alert("ACCESS DENIED: INCORRECT CODE");
-                        playSound('click');
+                    const code = prompt(`Enter 4-digit code (Hint: Check the train cargo):`, "");
+                    if(code && /^\d{4}$/.test(code)) {
+                        state.playerEnteredCode = code.split('').map(Number);
+                        if(state.playerEnteredCode.join('') === state.currentPuzzleCode.join('')) {
+                            playSound('grabpack_shoot');
+                            triggerWin();
+                        } else { alert("ACCESS DENIED"); }
                     }
                 }
             });
 
-            // 7. Locker (Hide spot)
-            const locker = new THREE.Mesh(new THREE.BoxGeometry(1, 2.5, 0.8), metalMat);
-            locker.position.set(4.5, 1.25, -15);
-            locker.rotation.y = -Math.PI/2;
+            // Code Clue on Train
+            interactables.push({
+                id: 'train', obj: trainCart, type: 'clue', name: 'Toy Train Cargo',
+                action: () => alert(`The train cart has numbers painted on it: ${state.currentPuzzleCode.join('')}`)
+            });
+
+            // Exit Door
+            const exitDoor = new THREE.Mesh(new THREE.BoxGeometry(3, 3.5, 0.5), new THREE.MeshStandardMaterial({color: 0x0055ff, emissive: 0x003399, emissiveIntensity: 0.2}));
+            exitDoor.position.set(0, 1.75, -29.5); scene.add(exitDoor);
+
+            // Locker
+            const locker = new THREE.Mesh(new THREE.BoxGeometry(1.5, 3, 1), metalMat);
+            locker.position.set(5.5, 1.5, -20); locker.rotation.y = -Math.PI/2;
             scene.add(locker);
-            interactables.push({
-                id: 'locker', obj: locker, type: 'hide',
-                name: 'Metal Locker',
-                action: () => toggleHide()
-            });
-            hideSpots.push(locker.position.clone());
-
-            // 8. VHS Tape
-            const vhs = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.3, 0.1), 
-                new THREE.MeshStandardMaterial({ color: 0x000000, emissive: 0x000044, emissiveIntensity: 0.2 }));
-            vhs.position.set(1, 0.05, -15);
-            scene.add(vhs);
-            interactables.push({
-                id: 'vhs1', obj: vhs, type: 'pickup',
-                name: 'VHS Tape', icon: '📼',
-                action: () => {
-                    addItemToInventory('vhs1', 'VHS Tape', '📼');
-                    loreTextEl.innerText = "DATE: 10/31/198X. SUBJECT exhibited extreme hostility towards mirrors. Recommended permanent containment in the Fun House.";
-                    loreNoteEl.style.display = 'block';
-                }
-            });
-
-            // Neon Lights Decoration
-            const neonMat = new THREE.MeshBasicMaterial({ color: 0xff007f });
-            const neonTube = new THREE.Mesh(new THREE.TorusGeometry(1, 0.05, 8, 20), neonMat);
-            neonTube.position.set(0, 2.8, -15);
-            scene.add(neonTube);
-
-            const neonLight = new THREE.PointLight(0xff007f, 1, 5);
-            neonLight.position.copy(neonTube.position);
-            scene.add(neonLight);
+            interactables.push({ id: 'locker', obj: locker, type: 'hide', name: 'Locker', action: () => toggleHide() });
         }
 
-        // Simple procedural dirty texture
-        function createDirtyTexture(baseColor, dirtColor) {
-            const canvas = document.createElement('canvas');
-            canvas.width = 256; canvas.height = 256;
-            const ctx = canvas.getContext('2d');
-            ctx.fillStyle = '#' + new THREE.Color(baseColor).getHexString();
-            ctx.fillRect(0, 0, 256, 256);
-            
-            // Add dirt/noise
-            ctx.fillStyle = '#' + new THREE.Color(dirtColor).getHexString();
-            for(let i=0; i<2000; i++) {
-                ctx.globalAlpha = Math.random() * 0.5;
-                ctx.fillRect(Math.random()*256, Math.random()*256, Math.random()*10+2, Math.random()*10+2);
-            }
-            ctx.globalAlpha = 1.0;
-
-            const tex = new THREE.CanvasTexture(canvas);
-            tex.wrapS = THREE.RepeatWrapping;
-            tex.wrapT = THREE.RepeatWrapping;
-            tex.repeat.set(4, 4);
-            return tex;
+        // --- CUTSCENE SCRIPTS ---
+        function triggerIntroCutscene() {
+            playCutscene([
+                { speaker: "TAPE RECORDER", text: "Date: October 14th, 1991. Playtime Co. Factory Log.", voice: true, camMove: { target: new THREE.Vector3(0, 4, 15), lookAt: new THREE.Vector3(0, 2, -5) } },
+                { speaker: "TAPE RECORDER", text: "I knew something was wrong with Project: JESTER. They said it was just a theme park attraction...", voice: true, camMove: { target: new THREE.Vector3(5, 3, 5), lookAt: new THREE.Vector3(0, 1, -2) } },
+                { speaker: "TAPE RECORDER", text: "But the organic components... the children's laughter used as power... it wasn't right.", voice: true, camMove: { target: new THREE.Vector3(-5, 3, 0), lookAt: new THREE.Vector3(0, 1, -2) } },
+                { speaker: "TAPE RECORDER", text: "If you are watching this, the Fun House is still active. Find the GrabPack. Do not let it see you smile.", voice: true, camMove: { target: new THREE.Vector3(0, 1.7, 3), lookAt: new THREE.Vector3(0, 1.5, -2) } }
+            ]);
         }
 
-        // --- PUZZLE SYSTEM ---
-        function randomizePuzzle() {
-            state.currentCode = [
-                Math.floor(Math.random() * 9) + 1,
-                Math.floor(Math.random() * 9) + 1,
-                Math.floor(Math.random() * 9) + 1,
-                Math.floor(Math.random() * 9) + 1
-            ];
-            console.log("CHEAT CODE: ", state.currentCode.join(''));
+        function triggerGrabPackCutscene() {
+            playCutscene([
+                { speaker: "SYSTEM", text: "GrabPack Equipped. Press Right Click to fire elastic hand.", voice: false, camMove: { target: new THREE.Vector3(2, 2, -1), lookAt: camera.position } },
+                { speaker: "SYSTEM", text: "Use it to interact with objects from a distance.", voice: false }
+            ]);
         }
 
-        function showPuzzleUI() {
-            if (state.playerCode.length >= 4) {
-                state.playerCode = [];
-            }
-            const input = prompt(`Enter 4-digit code (Current: ${state.playerCode.join('')}):`, "");
-            if (input && /^\d{4}$/.test(input)) {
-                state.playerCode = input.split('').map(Number);
-                playSound('click');
-                promptEl.innerText = `CODE SET: ${state.playerCode.join('')}`;
-                setTimeout(() => { promptEl.innerText = ''; }, 2000);
-            } else if(input !== null) {
-                alert("Invalid input. Must be 4 digits.");
-            }
+        function triggerEnemyIntroCutscene() {
+            playCutscene([
+                { speaker: "???", text: "..."
+                , voice: false, camMove: { target: new THREE.Vector3(0, 4, -15), lookAt: enemyMesh.position } },
+                { speaker: "THE JESTER", text: "A new playmate...", voice: true, camMove: { target: new THREE.Vector3(0, 2, -20), lookAt: new THREE.Vector3(0, 1.7, -10) } },
+                { speaker: "THE JESTER", text: "Let's play hide and seek.", voice: true, camMove: { target: new THREE.Vector3(-2, 3, -25), lookAt: camera.position } }
+            ]);
+            playSound('toy_ambience');
         }
 
-        // --- INVENTORY SYSTEM ---
-        function addItemToInventory(id, name, icon) {
-            if (state.inventory.length >= state.maxInventory) {
-                alert("Inventory Full!");
-                return;
-            }
-            state.inventory.push({ id, name, icon });
-            updateInventoryUI();
-            playSound('click');
-            
-            // Remove from scene
-            const interObj = interactables.find(i => i.id === id);
-            if (interObj) {
-                scene.remove(interObj.obj);
-                interactables = interactables.filter(i => i.id !== id);
-            }
-        }
-
-        function hasItem(id) {
-            return state.inventory.some(item => item.id === id);
-        }
-
-        function updateInventoryUI() {
-            for(let i=0; i<3; i++) {
-                const slot = document.getElementById(`slot-${i+1}`);
-                slot.innerText = state.inventory[i] ? state.inventory[i].icon : '';
-            }
-        }
-
-        // --- DOOR SYSTEM ---
-        function openDoor(doorMesh, requiredItem, yOffset) {
-            if (requiredItem === 'keycard' && !hasItem('keycard')) {
-                promptEl.innerText = "REQUIRES KEYCARD";
-                setTimeout(() => promptEl.innerText = "", 2000);
-                return;
-            }
-            if (requiredItem === 'code' && state.playerCode.join('') !== state.currentCode.join('')) {
-                promptEl.innerText = "INVALID CODE";
-                setTimeout(() => promptEl.innerText = "", 2000);
-                return;
-            }
-
-            playSound('door');
-            state.doorOpen = true;
-            
-            // Animate door sliding down
-            const animateDoor = () => {
-                if (doorMesh.position.y > yOffset) {
-                    doorMesh.position.y -= 0.05;
-                    requestAnimationFrame(animateDoor);
-                } else {
-                    // Activate enemy once in main hall
-                    if (!state.enemyActive && requiredItem === 'keycard') {
-                        state.enemyActive = true;
-                        vhsText.style.opacity = 1;
-                        playSound('whisper');
-                    }
-                }
-            };
-            animateDoor();
-        }
-
-        // --- ENEMY AI SYSTEM ---
+        // --- ENEMY AI ---
         function setupEnemy() {
-            const enemyGeo = new THREE.Group();
-            
-            // Creepy mannequin look
-            const body = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.3, 2, 8), 
-                new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 1 }));
-            const head = new THREE.Mesh(new THREE.SphereGeometry(0.35, 8, 8), 
-                new THREE.MeshStandardMaterial({ color: 0x888888, roughness: 0.5, metalness: 0.5 }));
-            // Red glowing eyes
-            const eyeGeo = new THREE.SphereGeometry(0.05, 6, 6);
-            const eyeMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-            const eyeL = new THREE.Mesh(eyeGeo, eyeMat);
-            eyeL.position.set(-0.1, 0.1, 0.3);
-            const eyeR = new THREE.Mesh(eyeGeo, eyeMat);
-            eyeR.position.set(0.1, 0.1, 0.3);
-            
-            head.add(eyeL, eyeR);
-            head.position.y = 1.3;
-            enemyGeo.add(body, head);
-            
-            enemyGeo.position.set(0, 1, -25); // Spawn at end of hall
-            scene.add(enemyGeo);
-            
-            enemyMesh = enemyGeo;
-            
-            // Patrol Path (Waypoints)
+            enemyMesh = new THREE.Group();
+            // Tall, thin, creepy jester
+            const body = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.5, 3, 8), new THREE.MeshStandardMaterial({color: 0x222222}));
+            const head = new THREE.Mesh(new THREE.SphereGeometry(0.5, 8, 8), new THREE.MeshStandardMaterial({color: 0xffffff}));
+            // Jester hat
+            const hat = new THREE.Mesh(new THREE.ConeGeometry(0.6, 1.5, 8), new THREE.MeshStandardMaterial({color: 0x8b0000}));
+            hat.position.y = 1.2; hat.rotation.z = 0.2;
+            const hat2 = new THREE.Mesh(new THREE.ConeGeometry(0.6, 1.5, 8), new THREE.MeshStandardMaterial({color: 0x0055ff}));
+            hat2.position.set(0.4, 1.0, 0); hat2.rotation.z = -0.5;
+            // Eyes
+            const eyeMat = new THREE.MeshBasicMaterial({color: 0xff0000});
+            const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.1, 6, 6), eyeMat); eyeL.position.set(-0.15, 0.1, 0.45);
+            const eyeR = new THREE.Mesh(new THREE.SphereGeometry(0.1, 6, 6), eyeMat); eyeR.position.set(0.15, 0.1, 0.45);
+            // Giant smile
+            const smileGeo = new THREE.TorusGeometry(0.2, 0.03, 8, 16, Math.PI);
+            const smile = new THREE.Mesh(smileGeo, eyeMat); smile.position.set(0, -0.1, 0.4); smile.rotation.x = 0.2;
+
+            head.add(eyeL, eyeR, smile);
+            body.add(head, hat, hat2);
+            body.position.y = 1.5;
+            enemyMesh.add(body);
+            enemyMesh.position.set(0, 0, -28);
+            scene.add(enemyMesh);
+
             enemyPath = [
-                new THREE.Vector3(0, 1, -25),
-                new THREE.Vector3(-2, 1, -20),
-                new THREE.Vector3(2, 1, -15),
-                new THREE.Vector3(-2, 1, -12),
-                new THREE.Vector3(2, 1, -18)
+                new THREE.Vector3(0, 0, -28), new THREE.Vector3(-4, 0, -20),
+                new THREE.Vector3(4, 0, -15), new THREE.Vector3(-4, 0, -12),
+                new THREE.Vector3(0, 0, -18)
             ];
         }
 
         function updateEnemy(delta) {
-            if (!state.enemyActive || !enemyMesh || state.isHiding) return;
+            if (!state.enemyActive || !enemyMesh || state.isHiding || state.phase === 'CUTSCENE') return;
 
             const pos = enemyMesh.position;
-            const targetPos = enemyPath[enemyPathIndex];
-            const dir = new THREE.Vector3().subVectors(targetPos, pos).normalize();
-            
-            // Look at player or path
+            let targetPos = enemyPath[enemyPathIdx];
+            let dir = new THREE.Vector3().subVectors(targetPos, pos).normalize();
+            let speed = 2.5;
+
             if (enemyState === 'chase') {
                 dir.subVectors(camera.position, pos).normalize();
-                enemySpeed = 5;
-            } else {
-                enemySpeed = 2;
+                speed = 5.5;
+                // Creepy audio loop when chasing
+                if(Math.random() < 0.01) playSound('toy_ambience');
             }
 
-            pos.add(dir.multiplyScalar(enemySpeed * delta));
-            enemyMesh.lookAt(new THREE.Vector3(pos.x + dir.x, pos.y, pos.z + dir.z));
+            pos.add(dir.multiplyScalar(speed * delta));
+            enemyMesh.lookAt(new THREE.Vector3(pos.x + dir.x, pos.y + 1.5, pos.z + dir.z));
 
-            // Check if reached waypoint
-            if (pos.distanceTo(targetPos) < 1 && enemyState !== 'chase') {
-                enemyPathIndex = (enemyPathIndex + 1) % enemyPath.length;
+            // Head bobbing animation
+            enemyMesh.children[0].rotation.z = Math.sin(clock.elapsedTime * 3) * 0.1;
+
+            if (pos.distanceTo(targetPos) < 1.5 && enemyState !== 'chase') {
+                enemyPathIdx = (enemyPathIdx + 1) % enemyPath.length;
             }
 
-            // Simple Line of Sight / Proximity Detection
+            // Detection (Line of sight + Proximity)
             const distToPlayer = pos.distanceTo(camera.position);
-            if (distToPlayer < 8) {
-                // Raycast to check for walls
+            if (distToPlayer < 10) {
                 const rayDir = new THREE.Vector3().subVectors(camera.position, pos).normalize();
                 const ray = new THREE.Raycaster(pos, rayDir, 0, distToPlayer);
                 const intersects = ray.intersectObjects(scene.children, true);
-                
-                // If first hit is far away, line of sight is clear
-                if (intersects.length === 0 || intersects[0].distance > distToPlayer - 0.5) {
+                if (intersects.length === 0 || intersects[0].distance > distToPlayer - 1) {
                     enemyState = 'chase';
                 }
-            } else {
-                enemyState = 'patrol';
-            }
+            } else { enemyState = 'patrol'; }
 
-            // Jumpscare Trigger
-            if (distToPlayer < 1.5 && enemyState === 'chase') {
-                triggerJumpscare();
-            }
+            if (distToPlayer < 1.5 && enemyState === 'chase') triggerJumpscare();
         }
 
-        // --- INTERACTION & HIDING ---
+        // --- GAMEPLAY SYSTEMS ---
+        function randomizePuzzle() { state.currentPuzzleCode = Array.from({length: 4}, () => Math.floor(Math.random()*9)+1); console.log("Code:", state.currentPuzzleCode.join('')); }
+        
+        function addItemToInventory(id, name, icon) {
+            if(state.inventory.length >= state.maxInventory) return alert("Inventory Full!");
+            state.inventory.push({id, name, icon});
+            updateInventoryUI(); playSound('grabpack_shoot');
+            interactables = interactables.filter(i => i.id !== id);
+            scene.remove(interactables.find(i => i.id === id)?.obj);
+        }
+        function hasItem(id) { return state.inventory.some(i => i.id === id); }
+        function updateInventoryUI() { for(let i=0; i<2; i++) document.getElementById(`slot-${i+1}`).innerText = state.inventory[i]?.icon || ''; }
+
         function toggleHide() {
             state.isHiding = !state.isHiding;
-            if (state.isHiding) {
-                camera.position.set(4.5, 0.5, -15); // Move camera inside locker
-                promptEl.innerText = "HIDING... Press E to leave";
+            if(state.isHiding) {
+                camera.position.set(5.5, 0.5, -20);
+                promptEl.innerText = "Hiding... Press E to leave";
             } else {
-                camera.position.set(4.5, 1.7, -14); // Pop out
+                camera.position.set(5.5, 1.7, -19);
                 promptEl.innerText = "";
             }
         }
 
-        // --- GAME LOOP & CONTROLS ---
-        function setupEventListeners() {
-            // UI Buttons
-            document.getElementById('btn-start').addEventListener('click', () => {
-                initAudio();
-                menuEl.style.opacity = '0';
-                setTimeout(() => {
-                    menuEl.style.display = 'none';
-                    hudEl.style.display = 'block';
-                    state.isPlaying = true;
-                    controls.lock();
-                }, 1000);
+        function handleInteraction() {
+            if(state.isHiding) return toggleHide();
+            const ray = new THREE.Raycaster();
+            ray.setFromCamera(new THREE.Vector2(0,0), camera);
+            let closest = null, minD = 3.5;
+            interactables.forEach(item => {
+                const hits = ray.intersectObject(item.obj, true);
+                if(hits.length > 0 && hits[0].distance < minD) { minD = hits[0].distance; closest = item; }
             });
+            if(closest) closest.action();
+        }
 
-            document.getElementById('btn-quit').addEventListener('click', () => {
-                document.body.innerHTML = "<h1 style='color:white;text-align:center;margin-top:20%'>GOODBYE</h1>";
-            });
+        function handleGrabPackShoot() {
+            if(!state.hasGrabPack) return;
+            playSound('grabpack_shoot');
+            state.isFiringGrabPack = true;
+            grabPackWire.visible = true;
+            grabPackTarget.visible = true;
 
-            document.getElementById('btn-resume').addEventListener('click', () => {
-                pauseEl.style.display = 'none';
-                state.isPaused = false;
-                controls.lock();
-            });
-
-            loreNoteEl.querySelector('button').addEventListener('click', () => {
-                loreNoteEl.style.display = 'none';
-            });
-
-            // Pointer Lock Events
-            controls.addEventListener('lock', () => {
-                if(state.isPlaying) pauseEl.style.display = 'none';
-            });
+            const ray = new THREE.Raycaster();
+            ray.setFromCamera(new THREE.Vector2(0,0), camera);
             
-            controls.addEventListener('unlock', () => {
-                if(state.isPlaying && !state.isJumpscared) {
-                    pauseEl.style.display = 'flex';
-                    state.isPaused = true;
+            let hitObj = null;
+            interactables.forEach(item => {
+                if(item.type === 'grabpack_target') {
+                    const hits = ray.intersectObject(item.obj, true);
+                    if(hits.length > 0 && hits[0].distance < 15) hitObj = item;
                 }
             });
 
-            // Keyboard Inputs
-            document.addEventListener('keydown', (e) => {
-                if (!state.isPlaying || state.isPaused) return;
+            if(hitObj) {
+                // Animate wire to target
+                grabPackTarget.position.copy(hitObj.obj.position);
+                const animWire = () => {
+                    if(!state.isFiringGrabPack) return;
+                    const positions = grabPackWire.geometry.attributes.position.array;
+                    const start = new THREE.Vector3().copy(camera.position);
+                    const end = grabPackTarget.position.clone();
+                    positions[0] = start.x; positions[1] = start.y; positions[2] = start.z;
+                    positions[3] = end.x; positions[4] = end.y; positions[5] = end.z;
+                    grabPackWire.geometry.attributes.position.needsUpdate = true;
+                    
+                    if(start.distanceTo(end) > 1) requestAnimationFrame(animWire);
+                    else { hitObj.action(); setTimeout(() => { state.isFiringGrabPack = false; grabPackWire.visible = false; grabPackTarget.visible = false; }, 500); }
+                };
+                animWire();
+            } else {
+                // Miss animation
+                const dir = new THREE.Vector3(); camera.getWorldDirection(dir);
+                const endPos = camera.position.clone().add(dir.multiplyScalar(10));
+                const positions = grabPackWire.geometry.attributes.position.array;
+                positions[3] = endPos.x; positions[4] = endPos.y; positions[5] = endPos.z;
+                grabPackWire.geometry.attributes.position.needsUpdate = true;
+                setTimeout(() => { state.isFiringGrabPack = false; grabPackWire.visible = false; grabPackTarget.visible = false; }, 300);
+            }
+        }
 
+        // --- CONTROLS & EVENTS ---
+        function setupEventListeners() {
+            document.getElementById('btn-play').addEventListener('click', () => {
+                initAudio();
+                menuEl.style.display = 'none';
+                triggerIntroCutscene();
+            });
+
+            document.getElementById('btn-quit').addEventListener('click', () => document.body.innerHTML = '<h1 style="color:white;text-align:center;margin-top:20%">QUIT</h1>');
+            document.getElementById('btn-resume').addEventListener('click', () => { pauseEl.style.display='none'; state.isPaused=false; controls.lock(); });
+            document.getElementById('skip-btn').addEventListener('click', advanceCutscene);
+
+            controls.addEventListener('lock', () => { if(state.phase==='GAMEPLAY') pauseEl.style.display='none'; });
+            controls.addEventListener('unlock', () => { if(state.phase==='GAMEPLAY' && state!=='DEAD') { pauseEl.style.display='flex'; state.isPaused=true; } });
+
+            document.addEventListener('keydown', e => {
+                if(state.phase !== 'GAMEPLAY' || state.isPaused) return;
                 switch(e.code) {
-                    case 'KeyW': state.moveForward = true; break;
-                    case 'KeyS': state.moveBackward = true; break;
-                    case 'KeyA': state.moveLeft = true; break;
-                    case 'KeyD': state.moveRight = true; break;
-                    case 'ShiftLeft': state.isSprinting = true; break;
-                    case 'ControlLeft': 
-                        state.isCrouching = true; 
-                        camera.position.y = 1.0; 
+                    case 'KeyW': state.moveForward=true; break;
+                    case 'KeyS': state.moveBackward=true; break;
+                    case 'KeyA': state.moveLeft=true; break;
+                    case 'KeyD': state.moveRight=true; break;
+                    case 'ShiftLeft': state.isSprinting=true; break;
+                    case 'KeyX': 
+                        state.isCrouching = !state.isCrouching; 
+                        camera.position.y = state.isCrouching ? 1.0 : 1.7; 
                         break;
-                    case 'KeyF': 
-                        state.flashlightOn = !state.flashlightOn;
-                        flashlight.visible = state.flashlightOn;
-                        break;
+                    case 'KeyF': flashlight.visible = !flashlight.visible; break;
                     case 'KeyE': handleInteraction(); break;
                 }
             });
-
-            document.addEventListener('keyup', (e) => {
+            document.addEventListener('keyup', e => {
                 switch(e.code) {
-                    case 'KeyW': state.moveForward = false; break;
-                    case 'KeyS': state.moveBackward = false; break;
-                    case 'KeyA': state.moveLeft = false; break;
-                    case 'KeyD': state.moveRight = false; break;
-                    case 'ShiftLeft': state.isSprinting = false; break;
-                    case 'ControlLeft': 
-                        state.isCrouching = false; 
-                        if(!state.isHiding) camera.position.y = 1.7;
-                        break;
+                    case 'KeyW': state.moveForward=false; break;
+                    case 'KeyS': state.moveBackward=false; break;
+                    case 'KeyA': state.moveLeft=false; break;
+                    case 'KeyD': state.moveRight=false; break;
+                    case 'ShiftLeft': state.isSprinting=false; break;
                 }
             });
+
+            // Right Click for GrabPack
+            document.addEventListener('mousedown', e => {
+                if(e.button === 2 && state.phase === 'GAMEPLAY' && !state.isPaused) handleGrabPackShoot();
+            });
+            document.addEventListener('contextmenu', e => e.preventDefault());
 
             window.addEventListener('resize', () => {
                 camera.aspect = window.innerWidth / window.innerHeight;
                 camera.updateProjectionMatrix();
+                cutsceneCamera.aspect = window.innerWidth / window.innerHeight;
+                cutsceneCamera.updateProjectionMatrix();
                 renderer.setSize(window.innerWidth, window.innerHeight);
             });
         }
 
-        function handleInteraction() {
-            if (state.isHiding) {
-                toggleHide();
-                return;
-            }
-
-            // Raycasting from center of screen
-            const raycaster = new THREE.Raycaster();
-            raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
-            
-            const interactionDist = 3.0;
-            let closestHit = null;
-            let minDist = interactionDist;
-
-            interactables.forEach(item => {
-                const intersects = raycaster.intersectObject(item.obj, true);
-                if (intersects.length > 0 && intersects[0].distance < minDist) {
-                    minDist = intersects[0].distance;
-                    closestHit = item;
-                }
-            });
-
-            if (closestHit) {
-                closestHit.action();
-            }
-        }
-
-        function updateHUD(delta) {
-            // Battery drain
-            if (state.flashlightOn) {
-                state.battery -= delta * 2;
-                if (state.battery <= 0) {
-                    state.battery = 0;
-                    state.flashlightOn = false;
-                    flashlight.visible = false;
-                }
-            } else {
-                state.battery = Math.min(100, state.battery + delta * 0.5); // Slow recharge
-            }
-
-            batteryFill.style.width = state.battery + '%';
-            batteryFill.style.background = state.battery < 20 ? '#ff0000' : '#ffffff';
-
-            // Interaction Prompt
-            const raycaster = new THREE.Raycaster();
-            raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
-            let showPrompt = false;
-
-            interactables.forEach(item => {
-                const intersects = raycaster.intersectObject(item.obj, true);
-                if (intersects.length > 0 && intersects[0].distance < 3.0) {
-                    promptEl.innerText = `[E] ${item.name}`;
-                    showPrompt = true;
-                }
-            });
-
-            if (!showPrompt && !state.isHiding) promptEl.innerText = '';
-        }
-
-        function updateMovement(delta) {
-            if (state.isPaused || state.isJumpscared || state.isHiding) return;
-
-            const speed = state.isSprinting ? 8.0 : (state.isCrouching ? 2.0 : 5.0);
-            
-            // Damping
-            state.velocity.x -= state.velocity.x * 10.0 * delta;
-            state.velocity.z -= state.velocity.z * 10.0 * delta;
-
-            // Direction
-            state.direction.z = Number(state.moveForward) - Number(state.moveBackward);
-            state.direction.x = Number(state.moveRight) - Number(state.moveLeft);
-            state.direction.normalize();
-
-            if (state.moveForward || state.moveBackward) state.velocity.z -= state.direction.z * speed * delta * 20;
-            if (state.moveLeft || state.moveRight) state.velocity.x -= state.direction.x * speed * delta * 20;
-
-            controls.moveRight(-state.velocity.x * delta);
-            controls.moveForward(-state.velocity.z * delta);
-
-            // Boundary collision (Simple box bounds)
-            const pos = camera.position;
-            pos.x = Math.max(-4.8, Math.min(4.8, pos.x));
-            pos.z = Math.max(2.4, Math.min(24.8, pos.z));
-
-            // Head bob
-            if (state.moveForward || state.moveBackward || state.moveLeft || state.moveRight) {
-                const bobSpeed = state.isSprinting ? 15 : 8;
-                const bobAmount = state.isCrouching ? 0.02 : 0.05;
-                pos.y += Math.sin(clock.elapsedTime * bobSpeed) * bobAmount;
-            }
-        }
-
         // --- GAME STATES ---
         function triggerJumpscare() {
-            if (state.isJumpscared) return;
-            state.isJumpscared = true;
+            if(state.phase === 'DEAD') return;
+            state.phase = 'DEAD';
             controls.unlock();
             playSound('jumpscare');
-            
             jumpscareEl.style.display = 'flex';
-            
             setTimeout(() => {
-                jumpscareEl.style.display = 'none';
-                state.isPlaying = false;
-                document.body.innerHTML = `
-                    <div style="color: #8b0000; text-align: center; margin-top: 20%; font-family: 'Courier New';">
-                        <h1 style="font-size: 5rem; margin: 0;">YOU DIED</h1>
-                        <p style="font-size: 1.5rem; color: #555;">The Fun House claims another soul.</p>
-                        <button onclick="location.reload()" style="margin-top: 20px; padding: 10px 20px; font-size: 1.2rem; background: none; color: #8b0000; border: 2px solid #8b0000; cursor: pointer;">Try Again</button>
-                    </div>`;
+                document.body.innerHTML = `<div style="color:#8b0000;text-align:center;margin-top:20%;font-family:'Courier New';"><h1 style="font-size:6rem;margin:0;color:#000;background:#fff;display:inline-block;padding:0 20px;">GAME OVER</h1><p style="font-size:1.5rem;color:#888;margin-top:20px;">The Jester doesn't like quitters.</p><button onclick="location.reload()" class="menu-btn" style="margin-top:30px;">TRY AGAIN</button></div>`;
             }, 1500);
         }
 
         function triggerWin() {
-            state.isPlaying = false;
+            state.phase = 'WIN';
             controls.unlock();
             setTimeout(() => {
-                document.body.innerHTML = `
-                    <div style="color: #00f3ff; text-align: center; margin-top: 20%; font-family: 'Courier New';">
-                        <h1 style="font-size: 4rem; margin: 0;">ESCAPED</h1>
-                        <p style="font-size: 1.2rem; color: #888;">You left the Fun House, but the memories remain...</p>
-                        <p style="font-size: 1rem; color: #444; margin-top: 10px;">VHS Tapes Found: ${state.inventory.filter(i=>i.id.includes('vhs')).length}/1</p>
-                        <button onclick="location.reload()" style="margin-top: 20px; padding: 10px 20px; font-size: 1.2rem; background: none; color: #00f3ff; border: 2px solid #00f3ff; cursor: pointer;">Play Again</button>
-                    </div>`;
-            }, 2000);
+                document.body.innerHTML = `<div style="color:#0055ff;text-align:center;margin-top:20%;font-family:'Courier New';"><h1 style="font-size:5rem;margin:0;text-shadow:4px 4px 0 #ffd700;">CHAPTER 1 COMPLETE</h1><p style="font-size:1.5rem;color:#aaa;margin-top:20px;">You escaped The Fun House... for now.</p><button onclick="location.reload()" class="menu-btn" style="margin-top:30px;">MAIN MENU</button></div>`;
+            }, 1000);
         }
 
-        // --- MAIN ANIMATE LOOP ---
+        // --- UPDATE LOOP ---
+        function updateMovement(delta) {
+            if(state.isPaused || state.phase !== 'GAMEPLAY' || state.isHiding) return;
+            const speed = state.isSprinting ? 8.0 : (state.isCrouching ? 2.5 : 5.0);
+            state.velocity.x -= state.velocity.x * 10.0 * delta;
+            state.velocity.z -= state.velocity.z * 10.0 * delta;
+            state.direction.z = Number(state.moveForward) - Number(state.moveBackward);
+            state.direction.x = Number(state.moveRight) - Number(state.moveLeft);
+            state.direction.normalize();
+            if(state.moveForward || state.moveBackward) state.velocity.z -= state.direction.z * speed * delta * 20;
+            if(state.moveLeft || state.moveRight) state.velocity.x -= state.direction.x * speed * delta * 20;
+            controls.moveRight(-state.velocity.x * delta);
+            controls.moveForward(-state.velocity.z * delta);
+            
+            const p = camera.position;
+            p.x = Math.max(-5.8, Math.min(5.8, p.x));
+            p.z = Math.max(2.5, Math.min(29.8, p.z));
+
+            // Head bob
+            if(state.moveForward || state.moveBackward || state.moveLeft || state.moveRight) {
+                const bobSpeed = state.isSprinting ? 15 : 8;
+                const bobAmount = state.isCrouching ? 0.02 : 0.05;
+                if(!state.isCrouching) p.y += Math.sin(clock.elapsedTime * bobSpeed) * bobAmount;
+            }
+        }
+
+        function updateHUD() {
+            const ray = new THREE.Raycaster();
+            ray.setFromCamera(new THREE.Vector2(0,0), camera);
+            let show = false;
+            interactables.forEach(item => {
+                const hits = ray.intersectObject(item.obj, true);
+                if(hits.length > 0 && hits[0].distance < 3.5) {
+                    promptEl.innerText = item.type === 'grabpack_target' ? `[RIGHT CLICK] ${item.name}` : `[E] ${item.name}`;
+                    show = true;
+                }
+            });
+            if(!show && !state.isHiding) promptEl.innerText = '';
+        }
+
+        // --- MAIN LOOP ---
         function animate() {
             requestAnimationFrame(animate);
+            const delta = Math.min(clock.getDelta(), 0.1);
 
-            const delta = Math.min(clock.getDelta(), 0.1); // Cap delta to prevent huge jumps
-
-            if (state.isPlaying && !state.isPaused) {
+            if(state.phase === 'CUTSCENE') {
+                updateCutscene(delta);
+                renderer.render(scene, cutsceneCamera);
+            } 
+            else if(state.phase === 'GAMEPLAY' && !state.isPaused) {
                 updateMovement(delta);
                 updateEnemy(delta);
-                updateHUD(delta);
-
-                // Random ambient scares
-                if (Math.random() < 0.001) {
-                    playSound('whisper');
-                    // Glitch VHS text
-                    vhsText.innerText = "● REC ■ ■ ■";
-                    setTimeout(() => vhsText.innerText = "● REC", 1000);
-                }
+                updateHUD();
+                renderer.render(scene, camera);
+            } else {
+                renderer.render(scene, camera); // Render paused/jumpscare frame frozen
             }
-
-            renderer.render(scene, camera);
         }
 
-        // Start initialization
         init();
-
     </script>
 </body>
 </html>
