@@ -3,70 +3,77 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Fun House - Chapter 1: The Prototype</title>
+    <title>PROTOCOL: The Dark Below</title>
     <style>
-        :root { --red: #8b0000; --blue: #0055ff; --yellow: #ffd700; }
         body { margin: 0; overflow: hidden; background: #000; font-family: 'Courier New', monospace; color: #fff; user-select: none; }
-        #c { display: block; width: 100vw; height: 100vh; }
+        #game { display: block; width: 100vw; height: 100vh; }
         .ui { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; }
-        .ui.click { pointer-events: auto; }
+        .click { pointer-events: auto; }
         
-        #menu { background: radial-gradient(circle, #1a0000 0%, #000 100%); display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        .title { font-size: 6rem; font-weight: 900; color: #fff; text-shadow: 0 0 20px #8b0000, 4px 4px 0 #000; letter-spacing: -5px; }
-        .sub { font-size: 1.5rem; color: #666; margin-bottom: 40px; letter-spacing: 10px; }
-        .btn { background: #8b0000; color: #fff; border: none; padding: 15px 60px; font-size: 1.5rem; font-family: inherit; font-weight: bold; cursor: pointer; margin: 10px; clip-path: polygon(5% 0, 100% 0, 100% 75%, 95% 100%, 0 100%, 0 25%); transition: 0.2s; }
-        .btn:hover { background: #fff; color: #000; }
+        #menu { background: linear-gradient(to bottom, #0a0a0a, #000); display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        h1 { font-size: 5rem; margin: 0; letter-spacing: -3px; text-shadow: 0 0 30px #ff0000; }
+        .sub { color: #555; margin-bottom: 40px; letter-spacing: 5px; }
+        .btn { background: #222; color: #aaa; border: 2px solid #333; padding: 15px 40px; font-size: 1.2rem; font-family: inherit; cursor: pointer; margin: 10px; transition: 0.2s; }
+        .btn:hover { background: #fff; color: #000; border-color: #fff; }
 
         #hud { display: none; }
-        #cross { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 4px; height: 4px; background: rgba(255,255,255,0.5); border-radius: 50%; box-shadow: 0 0 5px #fff; }
-        #prompt { position: absolute; bottom: 30%; left: 50%; transform: translateX(-50%); font-size: 1.2rem; color: #ccc; background: rgba(0,0,0,0.6); padding: 5px 15px; opacity: 0; transition: 0.2s; }
-        #inv { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 5px; }
-        .slot { width: 50px; height: 50px; border: 2px solid #444; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; font-size: 24px; }
+        #cross { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 2px; height: 2px; background: rgba(255,255,255,0.6); border-radius: 50%; box-shadow: 0 0 4px #fff; }
+        #interact { position: absolute; bottom: 25%; left: 50%; transform: translateX(-50%); font-size: 1.1rem; color: #ddd; background: rgba(0,0,0,0.7); padding: 8px 16px; opacity: 0; transition: opacity 0.2s; }
+        #bars { position: absolute; top: 20px; left: 20px; width: 150px; }
+        .bar-container { width: 100%; height: 8px; background: #222; margin-bottom: 5px; position: relative; }
+        .bar-fill { height: 100%; transition: width 0.1s; }
+        #health-fill { background: #ff3333; width: 100%; }
+        #battery-fill { background: #ffaa00; width: 100%; }
+        .bar-label { position: absolute; left: 5px; top: -2px; font-size: 8px; color: #000; font-weight: bold; }
         
-        #cut { position: absolute; bottom: 50px; left: 50px; right: 50px; display: none; }
-        #spk { color: #8b0000; font-size: 1.2rem; font-weight: bold; margin-bottom: 5px; }
-        #txt { font-size: 1.5rem; line-height: 1.5; background: rgba(0,0,0,0.9); padding: 20px; border-left: 4px solid #8b0000; }
-        #skip { position: absolute; top: 20px; right: 20px; background: none; border: 1px solid #555; color: #555; padding: 10px; font-family: inherit; cursor: pointer; }
+        #inv { position: absolute; bottom: 20px; right: 20px; display: flex; gap: 5px; }
+        .slot { width: 50px; height: 50px; border: 2px solid #333; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; font-size: 24px; }
+        
+        #fear-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle, transparent 20%, #000 100%); pointer-events: none; opacity: 0; transition: opacity 0.5s; }
+        #vhs { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: repeating-linear-gradient(0deg, rgba(0,0,0,0.1) 0px, rgba(0,0,0,0.1) 1px, transparent 1px, transparent 2px); pointer-events: none; mix-blend-mode: overlay; }
+        
+        #popup { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #1a1a1a; border: 1px solid #333; padding: 20px; width: 300px; display: none; }
+        #popup h3 { margin: 0 0 10px 0; color: #aaa; border-bottom: 1px solid #333; padding-bottom: 5px; }
+        #popup p { font-size: 0.9rem; color: #888; line-height: 1.4; }
+        #popup button { margin-top: 15px; background: none; border: 1px solid #555; color: #888; padding: 5px 10px; cursor: pointer; font-family: inherit; }
 
-        #vhs { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: repeating-linear-gradient(0deg, rgba(0,0,0,0.15) 0px, rgba(0,0,0,0.15) 1px, transparent 1px, transparent 2px); pointer-events: none; opacity: 0.4; mix-blend-mode: overlay; }
-        #fear { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle, transparent 30%, #000 100%); pointer-events: none; opacity: 0; transition: opacity 1s; }
-        #jump { background: #000; display: none; align-items: center; justify-content: center; z-index: 100; }
-        #jimg { font-size: 25vw; animation: jm 0.05s infinite; }
-        @keyframes jm { 0% { transform: translate(-5px, -5px) scale(1.1); } 50% { transform: translate(5px, 5px) scale(1.2); } }
-        #pause { background: rgba(0,0,0,0.9); display: none; flex-direction: column; align-items: center; justify-content: center; }
-        #note { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 400px; background: #d3c6a6; color: #000; padding: 20px; font-family: 'Times New Roman'; display: none; pointer-events: auto; box-shadow: 0 0 30px rgba(0,0,0,0.8); }
-        #note h3 { margin: 0 0 10px 0; text-align: center; border-bottom: 1px solid #000; }
-        #note p { font-size: 1.1rem; font-style: italic; }
-        #note button { display: block; margin: 10px auto 0; background: none; border: 1px solid #000; padding: 5px 15px; cursor: pointer; }
+        #death { background: #000; display: none; align-items: center; justify-content: center; flex-direction: column; z-index: 100; }
+        #death h1 { font-size: 4rem; color: #8b0000; margin-bottom: 20px; }
+        
+        #pause { background: rgba(0,0,0,0.8); display: none; align-items: center; justify-content: center; flex-direction: column; }
     </style>
 </head>
 <body>
-    <div id="c"></div>
+    <div id="game"></div>
     <div id="vhs"></div>
-    <div id="fear"></div>
+    <div id="fear-overlay"></div>
 
     <div id="menu" class="ui click">
-        <div class="title">THE FUN HOUSE</div>
-        <div class="sub">CHAPTER 1: THE PROTOTYPE</div>
-        <button class="btn" id="play">PLAY</button>
-        <button class="btn" id="quit">QUIT</button>
+        <h1>PROTOCOL</h1>
+        <div class="sub">THE DARK BELOW</div>
+        <button class="btn" id="play-btn">START</button>
     </div>
 
     <div id="hud" class="ui">
         <div id="cross"></div>
-        <div id="prompt">[E] Interact</div>
-        <div id="inv"><div class="slot" id="s1"></div><div class="slot" id="s2"></div><div class="slot" id="s3"></div><div class="slot" id="s4"></div></div>
+        <div id="interact">[E] Use</div>
+        <div id="bars">
+            <div class="bar-container"><div class="bar-fill" id="health-fill"></div><div class="bar-label">HEALTH</div></div>
+            <div class="bar-container"><div class="bar-fill" id="battery-fill"></div><div class="bar-label">BATTERY</div></div>
+        </div>
+        <div id="inv">
+            <div class="slot" id="s0"></div>
+            <div class="slot" id="s1"></div>
+            <div class="slot" id="s2"></div>
+            <div class="slot" id="s3"></div>
+            <div class="slot" id="s4"></div>
+        </div>
     </div>
 
-    <div id="cut" class="ui click">
-        <div id="spk">SYS</div>
-        <div id="txt">...</div>
-        <button id="skip">SKIP >></button>
-    </div>
-
-    <div id="note" class="ui"><h3>Note</h3><p id="ntxt"></p><button onclick="document.getElementById('note').style.display='none'">Close</button></div>
-    <div id="jump" class="ui click"><div id="jimg">🛸</div></div>
-    <div id="pause" class="ui click"><h2>PAUSED</h2><button class="btn" id="res">RESUME</button></div>
+    <div id="popup" class="ui click"><h3>Document</h3><p id="pop-text"></p><button onclick="document.getElementById('popup').style.display='none'">Close</button></div>
+    
+    <div id="death" class="ui click"><h1>YOU DIED</h1><button class="btn" onclick="location.reload()">RETRY</button></div>
+    <div id="pause" class="ui click"><h2>PAUSED</h2><button class="btn" id="resume-btn">RESUME</button></div>
 
     <script type="importmap">
         { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js", "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/" } }
@@ -76,510 +83,520 @@
         import * as THREE from 'three';
         import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
 
+        // --- CORE STATE ---
         const clock = new THREE.Clock();
-        let scene, camera, renderer, controls, cutCam;
+        let scene, camera, renderer, controls;
+        let flash, flashTarget;
         
-        const S = {
+        const G = {
             phase: 'MENU', paused: false,
-            mv: { f: false, b: false, l: false, r: false }, sprint: false, crouch: false,
+            health: 100, battery: 100, flashOn: true,
+            keys: { w: false, a: false, s: false, d: false, shift: false, x: false },
             vel: new THREE.Vector3(), dir: new THREE.Vector3(),
-            inv: [], maxInv: 4,
-            code: Array.from({length: 4}, () => Math.floor(Math.random()*9)+1),
-            pCode: [], keys: 0,
-            enemyActive: false, eState: 'idle', hiding: false, dead: false
+            inventory: [],
+            enemySpawned: false
         };
 
-        let audioCtx, masterGain;
-        let flash, flashT;
-        let ints = []; 
-        let enemy, ePath = [], eIdx = 0;
-        let collidables = []; // Meshes used for collision raycasting
+        let walls = []; // Collision meshes
+        let interactables = [];
+        let monster, monsterPath = [], monsterIdx = 0;
+        let audioCtx;
 
-        const $ = id => document.getElementById(id);
-
+        // --- INITIALIZATION ---
         function init() {
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0x000000);
-            scene.fog = new THREE.FogExp2(0x000000, 0.035); 
+            scene.fog = new THREE.FogExp2(0x000000, 0.025);
 
-            camera = new THREE.PerspectiveCamera(70, innerWidth/innerHeight, 0.1, 100);
-            camera.position.set(0, 1.7, 48);
-            cutCam = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 0.1, 100);
-            cutCam.position.set(0, 5, 60);
+            camera = new THREE.PerspectiveCamera(75, innerWidth/innerHeight, 0.1, 100);
+            camera.position.set(0, 1.7, 80); // Start far back
 
-            renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: "high-performance" });
+            renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('game'), antialias: false });
             renderer.setSize(innerWidth, innerHeight);
             renderer.shadowMap.enabled = true;
-            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
             renderer.toneMapping = THREE.ACESFilmicToneMapping;
-            renderer.toneMappingExposure = 0.4; 
-            $('c').appendChild(renderer.domElement);
+            renderer.toneMappingExposure = 0.3;
 
             controls = new PointerLockControls(camera, document.body);
-            
-            buildFactory();
+
+            buildWorld();
             setupLighting();
-            setupFlashlight();
-            setupEnemy();
-            setupEvents();
-            
+            setupMonster();
+            setupInputs();
+
             animate();
         }
 
-        // --- TEXTURES ---
-        function createTex(base, dirt, size=512) {
-            const cv = document.createElement('canvas'); cv.width = cv.height = size;
-            const cx = cv.getContext('2d');
-            cx.fillStyle = base; cx.fillRect(0, 0, size, size);
-            cx.fillStyle = dirt;
-            for(let i=0; i<5000; i++) { cx.globalAlpha = Math.random() * 0.4; cx.fillRect(Math.random()*size, Math.random()*size, Math.random()*20+2, Math.random()*20+2); }
-            for(let i=0; i<20; i++) { cx.globalAlpha = Math.random() * 0.2; cx.fillStyle = '#000'; cx.beginPath(); cx.arc(Math.random()*size, Math.random()*size, Math.random()*40+10, 0, Math.PI*2); cx.fill(); }
-            const t = new THREE.CanvasTexture(cv); t.wrapS = t.wrapT = THREE.RepeatWrapping; return t;
+        // --- PROCEDURAL TEXTURES ---
+        function makeTex(base, dirt) {
+            const c = document.createElement('canvas'); c.width = c.height = 256;
+            const x = c.getContext('2d'); x.fillStyle = base; x.fillRect(0,0,256,256);
+            x.fillStyle = dirt;
+            for(let i=0; i<3000; i++) { x.globalAlpha = Math.random()*0.5; x.fillRect(Math.random()*256, Math.random()*256, Math.random()*15, Math.random()*15); }
+            const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; return t;
         }
 
-        // --- COLLISION & WALL BUILDING ---
-        // Custom Wall creator that automatically handles solid collision
-        const W = (w, h, d, x, y, z, mat) => {
-            const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat || wallMat);
-            m.position.set(x, y, z); m.castShadow = true; m.receiveShadow = true;
-            scene.add(m);
-            collidables.push(m); // Add to collision array
-            return m;
-        };
+        // --- WORLD BUILDER ---
+        function addWall(w, h, d, x, y, z, mat) {
+            const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+            mesh.position.set(x, y, z); mesh.castShadow = true; mesh.receiveShadow = true;
+            scene.add(mesh);
+            walls.push(mesh);
+            return mesh;
+        }
 
-        function buildFactory() {
-            const floorTex = createTex('#1a1a1a', '#050505'); floorTex.repeat.set(20, 20);
-            const wallTex = createTex('#2a2a2a', '#0a0a0a'); wallTex.repeat.set(5, 2);
-            const tileTex = createTex('#104040', '#000'); tileTex.repeat.set(10, 10);
-            const rustTex = createTex('#4a3030', '#000');
-            
-            window.wallMat = new THREE.MeshStandardMaterial({ map: wallTex, roughness: 0.8 });
-            const floorMat = new THREE.MeshStandardMaterial({ map: floorTex, roughness: 0.9 });
-            const tileMat = new THREE.MeshStandardMaterial({ map: tileTex, roughness: 0.6, metalness: 0.1 });
-            const rustMat = new THREE.MeshStandardMaterial({ map: rustTex, roughness: 1.0, metalness: 0.2 });
-            const metalMat = new THREE.MeshStandardMaterial({ color: 0x111111, metalness: 0.9, roughness: 0.3 });
-            const pipeMat = new THREE.MeshStandardMaterial({ color: 0x333333, metalness: 0.8, roughness: 0.4 });
+        function buildWorld() {
+            const floorTex = makeTex('#1a1a1a', '#050505'); floorTex.repeat.set(30, 30);
+            const wallTex = makeTex('#2a2a2a', '#0a0a0a'); wallTex.repeat.set(4, 2);
+            const tileTex = makeTex('#104040', '#000'); tileTex.repeat.set(8, 8);
+            const brickTex = makeTex('#3a2020', '#000'); brickTex.repeat.set(4, 2);
 
-            const floor = new THREE.Mesh(new THREE.PlaneGeometry(100, 100), floorMat);
-            floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);
+            const floorMat = new THREE.MeshStandardMaterial({map: floorTex, roughness: 0.9});
+            const wallMat = new THREE.MeshStandardMaterial({map: wallTex, roughness: 0.8});
+            const tileMat = new THREE.MeshStandardMaterial({map: tileTex, roughness: 0.6});
+            const brickMat = new THREE.MeshStandardMaterial({map: brickTex, roughness: 1});
+            const metalMat = new THREE.MeshStandardMaterial({color: 0x222222, metalness: 0.8, roughness: 0.2});
 
-            // --- ZONE 1: ENTRANCE (Z: 40 to 60) ---
-            W(40, 5, 0.5, -10, 2.5, 60, tileMat); 
-            W(40, 5, 0.5, 10, 2.5, 60, tileMat);
-            W(8, 5, 0.5, -8, 2.5, 40, tileMat); // Left side of door
-            W(8, 5, 0.5, 8, 2.5, 40, tileMat);  // Right side of door
-            W(4, 1, 0.5, 0, 4.5, 40, tileMat);  // Top of door frame
-            
-            // Security Props (Visual Only)
-            for(let i=0; i<3; i++) {
-                let desk = new THREE.Mesh(new THREE.BoxGeometry(2, 1, 1), metalMat);
-                desk.position.set(-5 + i*5, 0.5, 55); desk.castShadow = true; scene.add(desk);
-            }
-            for(let i=0; i<4; i++) {
-                let cab = new THREE.Mesh(new THREE.BoxGeometry(0.8, 2, 0.5), metalMat);
-                cab.position.set(9.5, 1, 58 - i*1.5); cab.castShadow=true; scene.add(cab);
-            }
+            // Master Floor
+            scene.add(new THREE.Mesh(new THREE.PlaneGeometry(150, 150), floorMat).rotateX(-Math.PI/2));
 
-            // --- ZONE 2: WAREHOUSE (Z: 0 to 40) ---
-            W(60, 5, 0.5, -20, 2.5, 20, wallMat);
-            W(60, 5, 0.5, 20, 2.5, 20, wallMat);
+            // ================= ZONE 1: OFFICES (Z: 60 to 90) =================
+            addWall(40, 4, 0.5, -10, 2, 90, tileMat); // Back wall
+            addWall(40, 4, 0.5, 10, 2, 90, tileMat);
+            addWall(20, 4, 0.5, -10, 2, 60, tileMat); // Dividers
+            addWall(20, 4, 0.5, 10, 2, 60, tileMat);
 
+            // Office Props
             for(let i=0; i<6; i++) {
-                let mac = new THREE.Mesh(new THREE.BoxGeometry(3, 4, 3), rustMat);
-                mac.position.set(-15 + i*6, 2, 25); mac.castShadow=true; scene.add(mac);
-                let light = new THREE.Mesh(new THREE.SphereGeometry(0.1), new THREE.MeshBasicMaterial({color: Math.random() > 0.5 ? 0xff0000 : 0x00ff00}));
-                light.position.set(-15 + i*6, 4.1, 25); scene.add(light);
+                const desk = new THREE.Mesh(new THREE.BoxGeometry(2, 1, 1), metalMat);
+                desk.position.set(-8 + i*4, 0.5, 85); desk.castShadow = true; scene.add(desk);
             }
-            for(let i=0; i<3; i++) {
-                let belt = new THREE.Mesh(new THREE.BoxGeometry(15, 1, 2), new THREE.MeshStandardMaterial({color:0x111111, roughness:1}));
-                belt.position.set(0, 0.5, 35 - i*5); scene.add(belt);
-                for(let j=0; j<15; j++) {
-                    let roller = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 2.2, 8), pipeMat);
-                    roller.position.set(-7 + j*1, 0.5, 35 - i*5); roller.rotation.x = Math.PI/2; scene.add(roller);
+
+            // Keycard on desk
+            const keycard = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.05, 0.2), new THREE.MeshStandardMaterial({color: 0x00ffff, emissive: 0x00ffff, emissiveIntensity: 1}));
+            keycard.position.set(4, 1.1, 85); scene.add(keycard);
+            addInteract(keycard, 'Blue Keycard', 'item_keycard', () => {
+                pickupItem('keycard', '🔑');
+                scene.remove(keycard);
+            });
+
+            // Door to Warehouse
+            const door1 = addWall(4, 4, 0.5, 0, 2, 60, metalMat);
+            addInteract(door1, 'Warehouse Door', 'door_warehouse', () => {
+                if(hasItem('keycard')) { playSound('door'); slideDown(door1); removeItem('keycard'); }
+                else showPrompt("REQUIRES KEYCARD");
+            });
+
+            // ================= ZONE 2: WAREHOUSE (Z: 0 to 60) =================
+            addWall(80, 4, 0.5, -20, 2, 30, wallMat); // Left wall
+            addWall(80, 4, 0.5, 20, 2, 30, wallMat);  // Right wall
+
+            // Massive Shelves
+            for(let z=10; z<55; z+=10) {
+                for(let x=-15; x<=15; x+=15) {
+                    // Shelf uprights
+                    addWall(4, 6, 0.2, x, 3, z, metalMat);
+                    addWall(4, 6, 0.2, x+4, 3, z, metalMat);
+                    // Shelf boards (visual only)
+                    for(let h=1; h<=5; h+=2) {
+                        const board = new THREE.Mesh(new THREE.BoxGeometry(4.2, 0.1, 1), new THREE.MeshStandardMaterial({color:0x444400}));
+                        board.position.set(x+2, h, z); scene.add(board);
+                    }
                 }
             }
-            for(let i=0; i<10; i++) {
-                let pipe = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 40, 8), pipeMat);
-                pipe.position.set(-18 + i*4, 4.8, 20); pipe.rotation.z = Math.PI/2; scene.add(pipe);
-            }
-            const cat1 = new THREE.Mesh(new THREE.BoxGeometry(10, 0.2, 20), new THREE.MeshStandardMaterial({color:0x333333, metalness:0.8, roughness:0.5}));
-            cat1.position.set(15, 3, 20); scene.add(cat1);
-            W(20, 1, 0.1, 20, 3.5, 20, new THREE.MeshStandardMaterial({color:0x333333, metalness:0.8, roughness:0.5})); // Railing collision
 
-            // --- ZONE 3: WATER TREATMENT (Z: -30 to 0) ---
-            W(10, 5, 0.5, -15, 2.5, 0, tileMat);
-            W(10, 5, 0.5, 15, 2.5, 0, tileMat);
-            W(20, 1, 0.5, 0, 4.5, 0, tileMat); 
+            // Generator Puzzle
+            const gen = new THREE.Mesh(new THREE.BoxGeometry(2, 2, 2), new THREE.MeshStandardMaterial({color:0x333333, metalness:0.9}));
+            gen.position.set(18, 1, 40); scene.add(gen);
+            addInteract(gen, 'Generator', 'puzzle_gen', () => {
+                if(hasItem('fuse')) { playSound('door'); removeItem('fuse'); 
+                    document.getElementById('bars').style.border = "2px solid #00ff00";
+                    setTimeout(() => document.getElementById('bars').style.border = "none", 2000);
+                    // Unlock sewer door
+                    interactables.find(i => i.id === 'door_sewer').locked = false;
+                    showPrompt("POWER RESTORED TO SECTOR 4");
+                } else showPrompt("REQUIRES FUSE");
+            });
+
+            // Fuse on top of a shelf
+            const fuse = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.4, 8), new THREE.MeshStandardMaterial({color: 0xff0000, emissive: 0xff0000}));
+            fuse.position.set(-13, 5.2, 20); scene.add(fuse);
+            addInteract(fuse, 'Red Fuse', 'item_fuse', () => { pickupItem('fuse', '🔌'); scene.remove(fuse); });
+
+            // Door to Sewers
+            const door2 = addWall(6, 4, 0.5, 0, 2, 0, metalMat);
+            addInteract(door2, 'Sewer Access', 'door_sewer', (intObj) => {
+                if(!intObj.locked) { playSound('door'); slideDown(door2); spawnMonster(); }
+                else showPrompt("NO POWER");
+            });
+            interactables.find(i => i.id === 'door_sewer').locked = true;
+
+            // ================= ZONE 3: SEWERS (Z: -60 to 0) =================
+            addWall(60, 5, 0.5, -15, 2.5, -30, brickMat);
+            addWall(60, 5, 0.5, 15, 2.5, -30, brickMat);
+            addWall(30, 5, 0.5, 0, 2.5, -60, brickMat);
             
-            const water = new THREE.Mesh(new THREE.PlaneGeometry(30, 30), new THREE.MeshStandardMaterial({color: 0x001111, roughness: 0.1, metalness: 0.8, transparent: true, opacity: 0.8}));
-            water.rotation.x = -Math.PI / 2; water.position.set(0, 0.05, -15); scene.add(water);
+            // Sewer water
+            const water = new THREE.Mesh(new THREE.PlaneGeometry(30, 60), new THREE.MeshStandardMaterial({color: 0x002211, roughness: 0.1, metalness: 0.8, transparent: true, opacity: 0.8}));
+            water.rotation.x = -Math.PI/2; water.position.set(0, 0.1, -30); scene.add(water);
 
-            for(let i=0; i<12; i++) {
-                let barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 1.2, 12), new THREE.MeshStandardMaterial({color: Math.random()>0.5 ? 0x444400 : 0x004400, roughness: 0.6}));
-                barrel.position.set(-15 + Math.random()*30, 0.6, -25 + Math.random()*20); barrel.castShadow = true; scene.add(barrel);
+            // Pillars
+            for(let i=0; i<4; i++) {
+                addWall(1, 5, 1, -8 + i*6, 2.5, -15, brickMat);
+                addWall(1, 5, 1, -8 + i*6, 2.5, -45, brickMat);
             }
 
-            // --- ZONE 4: CONTAINMENT (Z: -60 to -30) ---
-            W(30, 5, 0.5, -15, 2.5, -30, wallMat);
-            W(30, 5, 0.5, 15, 2.5, -30, wallMat);
-            W(30, 5, 0.5, 0, 2.5, -60, wallMat);
-            
-            // Inner Cell Walls
-            W(10, 5, 0.2, -5, 2.5, -45, new THREE.MeshStandardMaterial({color:0x111111, metalness:0.9, roughness:0.1}));
-            W(10, 5, 0.2, 5, 2.5, -45, new THREE.MeshStandardMaterial({color:0x111111, metalness:0.9, roughness:0.1}));
-            W(10, 5, 0.2, 0, 2.5, -50, new THREE.MeshStandardMaterial({color:0x111111, metalness:0.9, roughness:0.1}));
+            // Health Kit
+            const medkit = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.3, 0.2), new THREE.MeshStandardMaterial({color: 0xffffff, emissive: 0xff0000, emissiveIntensity: 0.5}));
+            medkit.position.set(10, 0.5, -20); scene.add(medkit);
+            addInteract(medkit, 'Medkit', 'item_medkit', () => { 
+                G.health = Math.min(100, G.health + 40); updateHUD(); 
+                scene.remove(medkit); showPrompt("+40 HEALTH");
+            });
 
-            const glass = new THREE.Mesh(new THREE.PlaneGeometry(10, 5), new THREE.MeshPhysicalMaterial({color:0x112222, transparent:true, opacity:0.3, roughness:0, metalness:0.1}));
-            glass.position.set(0, 2.5, -40); scene.add(glass);
-
-            // --- INTERACTABLES ---
-            const addInt = (id, obj, name, type, act) => { ints.push({id, obj, name, type, act}); };
-
-            let keyObj = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.05, 8), new THREE.MeshStandardMaterial({color:0xffd700, emissive:0xffa500, emissiveIntensity:0.5}));
-            keyObj.position.set(-5, 1.1, 55); keyObj.rotation.x = Math.PI/2; scene.add(keyObj);
-            addInt('key1', keyObj, 'Factory Key', 'item', () => { S.inv.push('key1'); updateInv(); scene.remove(keyObj); ints = ints.filter(i=>i.id!=='key1'); playS('click'); });
-
-            let note1 = new THREE.Mesh(new THREE.PlaneGeometry(0.3, 0.4), new THREE.MeshStandardMaterial({color:0xd3c6a6, side:2}));
-            note1.position.set(9.5, 2.1, 56.5); note1.rotation.y = -Math.PI/2; scene.add(note1);
-            addInt('n1', note1, 'Worker Note', 'note', () => {$('ntxt').innerText="They moved the Prototype to the lower levels. The water treatment plant. It kept breaking its restraints..."; $('note').style.display='block';});
-
-            let fuses = [];
+            // Batteries
             for(let i=0; i<3; i++) {
-                let fuse = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.1, 0.1), new THREE.MeshStandardMaterial({color:0xff0000, emissive:0xff0000, emissiveIntensity:0.5}));
-                fuse.position.set(-15 + i*10, 1, 28); scene.add(fuse);
-                addInt(`f${i}`, fuse, `Fuse ${i+1}/3`, 'item', () => { 
-                    S.inv.push(`f${i}`); updateInv(); scene.remove(fuse); ints = ints.filter(x=>x.id!==`f${i}`); playS('click');
-                    if(S.inv.filter(x=>x.startsWith('f')).length === 3) alert("All fuses collected! Find the fuse box.");
+                const bat = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.1, 0.1), new THREE.MeshStandardMaterial({color: 0x00ff00, emissive: 0x00ff00}));
+                bat.position.set(-10 + Math.random()*20, 0.5, -50 + Math.random()*30); scene.add(bat);
+                addInteract(bat, 'Battery', 'item_bat', () => { 
+                    G.battery = 100; updateHUD(); scene.remove(bat); showPrompt("BATTERY FULL");
                 });
             }
 
-            let fuseBox = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 0.2), metalMat);
-            fuseBox.position.set(19.8, 2, 15); fuseBox.rotation.y = -Math.PI/2; scene.add(fuseBox);
-            addInt('fusebox', fuseBox, 'Fuse Box', 'puzzle', () => {
-                if(S.inv.filter(x=>x.startsWith('f')).length === 3) {
-                    playS('door'); S.inv = S.inv.filter(x=>!x.startsWith('f')); updateInv();
-                    ints.find(i=>i.id==='door2').locked = false;
-                    $('prompt').innerText="POWER RESTORED"; setTimeout(()=>$('prompt').innerText="", 2000);
-                } else { $('prompt').innerText="REQUIRES 3 FUSES"; setTimeout(()=>$('prompt').innerText="", 2000); }
-            });
+            // Lore Documents
+            const notes = [
+                "Date: 11/4. We lost Johnson today. The thing in the water moves faster than we thought.",
+                "Protocol override failed. Do not go to Sector 4. The generator is the only way out.",
+                "It mimics us. I heard my own voice calling from the dark. Don't listen to it."
+            ];
+            for(let i=0; i<3; i++) {
+                const note = new THREE.Mesh(new THREE.PlaneGeometry(0.3, 0.4), new THREE.MeshStandardMaterial({color: 0xd3c6a6, side: 2}));
+                note.position.set(14.8, 1.5, -10 - i*20); note.rotation.y = -Math.PI/2; scene.add(note);
+                addInteract(note, 'Note', 'note', () => { document.getElementById('pop-text').innerText = notes[i]; document.getElementById('popup').style.display = 'block'; });
+            }
 
-            let door2 = new THREE.Mesh(new THREE.BoxGeometry(4, 5, 0.5), new THREE.MeshStandardMaterial({color:0x222222, metalness:0.8}));
-            door2.position.set(0, 2.5, 0.1); scene.add(door2); collidables.push(door2); // Add door to collision
-            addInt('door2', door2, 'Maintenance Door', 'door', () => {
-                if(!ints.find(i=>i.id==='door2').locked) { 
-                    playS('door'); 
-                    slideDoor(door2, -10, () => { collidables.splice(collidables.indexOf(door2), 1); }); // Remove collision when open
+            // Exit Door
+            const exitDoor = addWall(4, 4, 0.5, 0, 2, -59.5, new THREE.MeshStandardMaterial({color: 0x005500, emissive: 0x003300}));
+            addInteract(exitDoor, 'Exit Ladder', 'exit', () => { winGame(); });
+        }
+
+        // --- INTERACTION SYSTEM ---
+        function addInteract(obj, name, id, action) {
+            interactables.push({ id, obj, name, action, locked: false });
+        }
+
+        function pickupItem(id, icon) {
+            if(G.inventory.length >= 5) return showPrompt("INVENTORY FULL");
+            G.inventory.push({ id, icon });
+            playSound('click');
+            updateHUD();
+            interactables = interactables.filter(i => i.obj !== interactables.find(x=>x.id===id)?.obj);
+        }
+        function hasItem(id) { return G.inventory.some(i => i.id === id); }
+        function removeItem(id) { G.inventory = G.inventory.filter(i => i.id !== id); updateHUD(); }
+
+        function slideDown(obj) {
+            const anim = () => { if(obj.position.y > -5) { obj.position.y -= 0.2; requestAnimationFrame(anim); } else { walls.splice(walls.indexOf(obj), 1); } };
+            anim();
+        }
+
+        function showPrompt(txt) {
+            const el = document.getElementById('interact');
+            el.innerText = txt; el.style.opacity = 1;
+            setTimeout(() => el.style.opacity = 0, 2000);
+        }
+
+        function updateHUD() {
+            document.getElementById('health-fill').style.width = G.health + '%';
+            document.getElementById('battery-fill').style.width = G.battery + '%';
+            for(let i=0; i<5; i++) document.getElementById('s'+i).innerText = G.inventory[i]?.icon || '';
+        }
+
+        // --- MONSTER AI ---
+        function setupMonster() {
+            monster = new THREE.Group();
+            const bodyMat = new THREE.MeshStandardMaterial({color: 0x050505, roughness: 1});
+            const body = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.7, 3, 8), bodyMat);
+            const head = new THREE.Mesh(new THREE.SphereGeometry(0.6, 8, 8), new THREE.MeshStandardMaterial({color: 0x111111}));
+            const eyeMat = new THREE.MeshBasicMaterial({color: 0xff0000});
+            const e1 = new THREE.Mesh(new THREE.SphereGeometry(0.15, 6, 6), eyeMat); e1.position.set(-0.2, 0.1, 0.5);
+            const e2 = new THREE.Mesh(new THREE.SphereGeometry(0.15, 6, 6), eyeMat); e2.position.set(0.2, 0.1, 0.5);
+            head.add(e1, e2); head.position.y = 2;
+            monster.add(body, head);
+            monster.position.set(0, 0, -50); // Hidden deep in sewers
+            scene.add(monster);
+
+            monsterPath = [
+                new THREE.Vector3(0, 0, -50), new THREE.Vector3(-10, 0, -30),
+                new THREE.Vector3(10, 0, -10), new THREE.Vector3(-15, 0, 20),
+                new THREE.Vector3(15, 0, 40), new THREE.Vector3(0, 0, 60),
+                new THREE.Vector3(-5, 0, 80) // Goes all the way to spawn
+            ];
+        }
+
+        function spawnMonster() {
+            if(G.enemySpawned) return;
+            G.enemySpawned = true;
+            monster.position.set(0, 0, -10); // Spawn right behind the door you just opened
+            playSound('monster_roar');
+        }
+
+        let monsterState = 'patrol';
+        function updateMonster(delta) {
+            if(!G.enemySpawned || G.phase !== 'PLAY') return;
+
+            const pos = monster.position;
+            const target = monsterPath[monsterIdx];
+            let dir = new THREE.Vector3().subVectors(target, pos).normalize();
+            let speed = 3.5;
+
+            if(monsterState === 'chase') {
+                dir.subVectors(camera.position, pos).normalize();
+                speed = 7; // Faster than player sprint
+                document.getElementById('fear-overlay').style.opacity = '0.8';
+                if(Math.random() < 0.01) playSound('monster_growl');
+            } else {
+                document.getElementById('fear-overlay').style.opacity = '0';
+            }
+
+            pos.add(dir.multiplyScalar(speed * delta));
+            monster.lookAt(pos.x + dir.x, pos.y + 1.5, pos.z + dir.z);
+            
+            // Twitch animation
+            monster.children[0].rotation.z = Math.sin(clock.elapsedTime * 8) * 0.2;
+
+            if(pos.distanceTo(target) < 2 && monsterState !== 'chase') monsterIdx = (monsterIdx + 1) % monsterPath.length;
+
+            const distToPlayer = pos.distanceTo(camera.position);
+            
+            // Detection: Line of sight
+            if(distToPlayer < 20) {
+                const rayDir = new THREE.Vector3().subVectors(camera.position, pos).normalize();
+                const ray = new THREE.Raycaster(pos, rayDir, 0, distToPlayer);
+                if(ray.intersectObjects(walls, false).length === 0) {
+                    monsterState = 'chase';
+                } else {
+                    monsterState = 'patrol';
                 }
-                else { $('prompt').innerText="LOCKED (NO POWER)"; setTimeout(()=>$('prompt').innerText="", 2000); }
-            });
-            ints.find(i=>i.id==='door2').locked = true;
-
-            for(let i=0; i<5; i++) {
-                let vhs = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.3, 0.1), new THREE.MeshStandardMaterial({color:0x000, emissive:0x000022}));
-                vhs.position.set(-15 + Math.random()*30, 0.15, Math.random()*40 - 10); scene.add(vhs);
-                const lore = ["Subject exhibits extreme hostility.", "Do not look it in the eyes.", "It mimics voices.", "The water hides the blood.", "Last survivor hiding in the lower labs."];
-                addInt(`v${i}`, vhs, 'VHS Tape', 'note', () => {$('ntxt').innerText = lore[i]; $('note').style.display='block'; scene.remove(vhs); ints = ints.filter(x=>x.id!==`v${i}`); playS('click');});
+            } else {
+                monsterState = 'patrol';
             }
 
-            let valve = new THREE.Mesh(new THREE.TorusGeometry(0.4, 0.1, 8, 16), rustMat);
-            valve.position.set(-19.8, 2, -15); valve.rotation.y = Math.PI/2; scene.add(valve);
-            addInt('valve', valve, 'Water Valve', 'puzzle', () => { 
-                valve.rotation.z += Math.PI/2; playS('door');
-                water.material.opacity = 0.2; 
-                $('prompt').innerText="WATER DRAINING"; setTimeout(()=>$('prompt').innerText="", 2000);
-                ints.find(i=>i.id==='hatch').locked = false;
-            });
-
-            let hatch = new THREE.Mesh(new THREE.CircleGeometry(1, 16), new THREE.MeshStandardMaterial({color:0x222222, metalness:0.9}));
-            hatch.rotation.x = -Math.PI/2; hatch.position.set(0, 0.1, -25); scene.add(hatch);
-            addInt('hatch', hatch, 'Drain Hatch', 'door', () => {
-                if(!ints.find(i=>i.id==='hatch').locked) { playS('door'); hatch.position.y = -5; }
-                else { $('prompt').innerText="BLOCKED BY WATER"; setTimeout(()=>$('prompt').innerText="", 2000); }
-            });
-            ints.find(i=>i.id==='hatch').locked = true;
-
-            let door4 = new THREE.Mesh(new THREE.BoxGeometry(6, 5, 0.5), new THREE.MeshStandardMaterial({color:0x8b0000}));
-            door4.position.set(0, 2.5, -30.1); scene.add(door4); collidables.push(door4);
-            addInt('door4', door4, 'Containment Door', 'door', () => { 
-                playS('door'); 
-                slideDoor(door4, -10, () => { collidables.splice(collidables.indexOf(door4), 1); }); 
-                triggerEnemySpawn(); 
-            });
-
-            let exit = new THREE.Mesh(new THREE.BoxGeometry(4, 4, 0.5), new THREE.MeshBasicMaterial({color:0x00ff00}));
-            exit.position.set(0, 2, -59.5); scene.add(exit);
-            addInt('exit', exit, 'Emergency Exit', 'puzzle', () => {
-                const c = prompt("ENTER 4-DIGIT EXIT CODE (Hint: Check containment monitors):", "");
-                if(c === S.code.join('')) triggerWin();
-                else { alert("LOCKED"); playS('click'); }
-            });
-
-            let mon4 = new THREE.Mesh(new THREE.BoxGeometry(2, 1.5, 0.2), new THREE.MeshStandardMaterial({color:0x000, emissive:0x003300, emissiveIntensity:1}));
-            mon4.position.set(-4.8, 2, -42); mon4.rotation.y = Math.PI/2; scene.add(mon4);
-            addInt('mon4', mon4, 'Terminal', 'note', () => {$('ntxt').innerText=`CONTAINMENT CODE: ${S.code.join('')}\nWARNING: PROTOTYPE ACTIVE`; $('note').style.display='block';});
-
-            for(let i=0; i<4; i++) {
-                let locker = new THREE.Mesh(new THREE.BoxGeometry(1.5, 3, 1), metalMat);
-                locker.position.set(-19 + i*0.1, 1.5, 10 - i*8); locker.rotation.y = Math.PI/2; scene.add(locker); collidables.push(locker);
-                addInt(`h${i}`, locker, 'Locker', 'hide', () => toggleHide(locker.position));
-            }
-
-            for(let i=0; i<10; i++) {
-                let doll = new THREE.Group();
-                doll.add(new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.8), new THREE.MeshStandardMaterial({color:0xcccccc})));
-                doll.add(new THREE.Mesh(new THREE.SphereGeometry(0.2), new THREE.MeshStandardMaterial({color:0xffcccc})));
-                doll.children[1].position.y = 0.6;
-                doll.position.set(-15 + Math.random()*30, 0.4, Math.random()*80 - 40);
-                const eye = new THREE.Mesh(new THREE.SphereGeometry(0.03), new THREE.MeshBasicMaterial({color:0xff0000}));
-                eye.position.set(0.05, 0.65, 0.18); doll.children[1].add(eye);
-                const eye2 = eye.clone(); eye2.position.x = -0.05; doll.children[1].add(eye2);
-                scene.add(doll);
+            // Attack logic
+            if(distToPlayer < 1.5 && monsterState === 'chase') {
+                die();
+            } else if(distToPlayer < 2 && monsterState === 'chase') {
+                // Close damage
+                if(Math.random() < 0.05) {
+                    G.health -= 20;
+                    updateHUD();
+                    playSound('hit');
+                    if(G.health <= 0) die();
+                }
             }
         }
 
-        function slideDoor(obj, yTarget, onDone) {
-            const a = () => { 
-                if(obj.position.y > yTarget) { obj.position.y -= 0.1; requestAnimationFrame(a); } 
-                else if(onDone) onDone();
-            };
-            a();
+        // --- AUDIO SYSTEM ---
+        function initAudio() {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            // Ambient Drip
+            const drip = audioCtx.createOscillator();
+            const dripGain = audioCtx.createGain();
+            drip.type = 'sine'; drip.frequency.value = 600; dripGain.gain.value = 0;
+            const lfo = audioCtx.createOscillator(); const lfoG = audioCtx.createGain();
+            lfo.frequency.value = 0.8; lfoG.gain.value = 0.3;
+            lfo.connect(lfoG); lfoG.connect(dripGain.gain); lfo.start();
+            drip.connect(dripGain); dripGain.connect(audioCtx.destination); drip.start();
+
+            // Wind
+            const wind = audioCtx.createOscillator();
+            const windG = audioCtx.createGain();
+            wind.type = 'sawtooth'; wind.frequency.value = 80; windG.gain.value = 0.05;
+            wind.connect(windG); windG.connect(audioCtx.destination); wind.start();
         }
 
-        function toggleHide(pos) {
-            S.hiding = !S.hiding;
-            if(S.hiding) { camera.position.set(pos.x, 0.5, pos.z); $('prompt').innerText = "HIDING..."; }
-            else { camera.position.y = 1.7; $('prompt').innerText = ""; }
+        function playSound(type) {
+            if(!audioCtx) return;
+            const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+            o.connect(g); g.connect(audioCtx.destination);
+            if(type==='click') { o.frequency.value=1000; g.gain.setValueAtTime(0.2,audioCtx.currentTime); g.gain.exponentialRampToValueAtTime(0.01,audioCtx.currentTime+0.1); o.start(); o.stop(audioCtx.currentTime+0.1); }
+            if(type==='door') { o.type='triangle'; o.frequency.setValueAtTime(60,audioCtx.currentTime); o.frequency.exponentialRampToValueAtTime(20,audioCtx.currentTime+1.5); g.gain.setValueAtTime(0.6,audioCtx.currentTime); g.gain.exponentialRampToValueAtTime(0.01,audioCtx.currentTime+1.5); o.start(); o.stop(audioCtx.currentTime+1.5); }
+            if(type==='monster_roar') { o.type='sawtooth'; o.frequency.setValueAtTime(80,audioCtx.currentTime); o.frequency.exponentialRampToValueAtTime(2000,audioCtx.currentTime+0.8); g.gain.setValueAtTime(1,audioCtx.currentTime); g.gain.exponentialRampToValueAtTime(0.01,audioCtx.currentTime+1.5); o.start(); o.stop(audioCtx.currentTime+1.5); }
+            if(type==='monster_growl') { o.type='square'; o.frequency.value=50; g.gain.setValueAtTime(0.4,audioCtx.currentTime); g.gain.exponentialRampToValueAtTime(0.01,audioCtx.currentTime+0.8); o.start(); o.stop(audioCtx.currentTime+0.8); }
+            if(type==='hit') { o.type='sawtooth'; o.frequency.value=200; g.gain.setValueAtTime(0.8,audioCtx.currentTime); g.gain.exponentialRampToValueAtTime(0.01,audioCtx.currentTime+0.3); o.start(); o.stop(audioCtx.currentTime+0.3); }
         }
 
-        function updateInv() {
-            for(let i=1; i<=4; i++) {
-                const s = $('s'+i); const item = S.inv[i-1];
-                if(item==='key1') s.innerText='🔑'; else if(item.startsWith('f')) s.innerText='🔌'; else s.innerText='';
-            }
-        }
-
-        // --- LIGHTING & ACCURATE FLASHLIGHT ---
+        // --- LIGHTING ---
         function setupLighting() {
             scene.add(new THREE.AmbientLight(0x111111, 0.2));
-            for(let i=0; i<8; i++) {
+            
+            // Flickering ceiling lights
+            for(let i=0; i<15; i++) {
                 const light = new THREE.PointLight(0xffaa44, 1, 15);
-                light.position.set(-10 + Math.random()*20, 4.5, Math.random()*80 - 30);
-                light.castShadow = true; scene.add(light);
-                setInterval(() => { if(S.phase==='GAME') light.intensity = Math.random() > 0.3 ? 1 : 0.05; }, 100 + Math.random()*200);
+                light.position.set(-15 + Math.random()*30, 3.8, Math.random()*140 - 50);
+                light.castShadow = true;
+                scene.add(light);
+                setInterval(() => { light.intensity = Math.random() > 0.2 ? 1 : 0; }, 100 + Math.random()*200);
             }
-            const redLight = new THREE.PointLight(0xff0000, 2, 20);
-            redLight.position.set(0, 4, -45); scene.add(redLight);
-        }
 
-        function setupFlashlight() {
-            // Create spotlight attached to camera
-            flash = new THREE.SpotLight(0xffffff, 5, 25, Math.PI / 6, 0.4, 1.5);
-            flash.castShadow = true; 
-            flash.shadow.mapSize.set(1024, 1024);
-            
-            // Target object dictates exactly where the light points
-            flashT = new THREE.Object3D();
-            // Position target 5 units in FRONT of the camera along the Z axis
-            flashT.position.set(0, 0, -5); 
-            
-            camera.add(flashT); 
-            camera.add(flash); 
-            flash.target = flashT;
+            // Flashlight
+            flash = new THREE.SpotLight(0xffffff, 5, 20, Math.PI / 5, 0.5, 1.5);
+            flash.castShadow = true;
+            flashTarget = new THREE.Object3D();
+            flashTarget.position.set(0, 0, -5); // Points exactly where crosshair looks
+            camera.add(flashTarget); camera.add(flash);
+            flash.target = flashTarget;
             scene.add(camera);
         }
 
-        // --- AUDIO ---
-        function initAudio() {
-            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            masterGain = audioCtx.createGain(); masterGain.gain.value = 0.6; masterGain.connect(audioCtx.destination);
-            createAmbience('drip', 800); createAmbience('wind', 200); createAmbience('hum', 100);
+        // --- MOVEMENT & COLLISION ---
+        function updateMovement(delta) {
+            if(G.paused || G.phase !== 'PLAY') return;
+            const speed = G.keys.shift ? 6.0 : (G.keys.x ? 2.5 : 4.0);
+            
+            G.vel.x -= G.vel.x * 10.0 * delta;
+            G.vel.z -= G.vel.z * 10.0 * delta;
+            
+            G.dir.z = Number(G.keys.w) - Number(G.keys.s);
+            G.dir.x = Number(G.keys.d) - Number(G.keys.a);
+            G.dir.normalize();
+
+            if(G.keys.w || G.keys.s) G.vel.z -= G.dir.z * speed * delta * 20;
+            if(G.keys.a || G.keys.d) G.vel.x -= G.dir.x * speed * delta * 20;
+
+            const prev = camera.position.clone();
+            controls.moveRight(-G.vel.x * delta);
+            controls.moveForward(-G.vel.z * delta);
+
+            // Circle Raycast Collision
+            const ray = new THREE.Raycaster();
+            for(let i=0; i<12; i++) {
+                const angle = (i/12) * Math.PI * 2;
+                ray.set(camera.position, new THREE.Vector3(Math.cos(angle), 0, Math.sin(angle)));
+                ray.near = 0; ray.far = 0.4;
+                const hits = ray.intersectObjects(walls, false);
+                if(hits.length > 0) {
+                    const push = 0.4 - hits[0].distance;
+                    if(push > 0) {
+                        camera.position.x -= Math.cos(angle) * push;
+                        camera.position.z -= Math.sin(angle) * push;
+                    }
+                }
+            }
+
+            // Hard bounds
+            camera.position.x = Math.max(-19.5, Math.min(19.5, camera.position.x));
+            camera.position.z = Math.max(-59.5, Math.min(89.5, camera.position.z));
+
+            // Headbob
+            if(G.keys.w || G.keys.s || G.keys.a || G.keys.d) {
+                if(!G.keys.x) camera.position.y += Math.sin(clock.elapsedTime * (G.keys.shift?15:8)) * 0.04;
+            }
         }
 
-        function createAmbience(type, freq) {
-            const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
-            osc.type = type === 'wind' ? 'sawtooth' : 'sine'; osc.frequency.value = freq; gain.gain.value = 0;
-            const lfo = audioCtx.createOscillator(), lfoGain = audioCtx.createGain();
-            lfo.frequency.value = type === 'drip' ? 0.5 + Math.random() : 0.1; lfoGain.gain.value = type === 'drip' ? 0.3 : 0.1;
-            lfo.connect(lfoGain); lfoGain.connect(gain.gain); lfo.start();
-            osc.connect(gain); gain.connect(masterGain); osc.start();
+        function updateInteraction() {
+            const ray = new THREE.Raycaster();
+            ray.setFromCamera(new THREE.Vector2(0,0), camera);
+            let found = false;
+            
+            for(let int of interactables) {
+                const hits = ray.intersectObject(int.obj, true);
+                if(hits.length > 0 && hits[0].distance < 3.5) {
+                    document.getElementById('interact').innerText = `[E] ${int.name}`;
+                    document.getElementById('interact').style.opacity = 1;
+                    found = true;
+                    int.currentlyLooking = true;
+                } else {
+                    int.currentlyLooking = false;
+                }
+            }
+            if(!found) document.getElementById('interact').style.opacity = 0;
         }
 
-        function playS(type) {
-            if(!audioCtx) return;
-            const o = audioCtx.createOscillator(), g = audioCtx.createGain();
-            o.connect(g); g.connect(masterGain);
-            if(type==='click') { o.type='sine'; o.frequency.value=1000; g.gain.setValueAtTime(0.3,audioCtx.currentTime); g.gain.exponentialRampToValueAtTime(0.01,audioCtx.currentTime+0.1); o.start(); o.stop(audioCtx.currentTime+0.1); }
-            if(type==='door') { o.type='triangle'; o.frequency.setValueAtTime(60,audioCtx.currentTime); o.frequency.exponentialRampToValueAtTime(20,audioCtx.currentTime+2); g.gain.setValueAtTime(0.8,audioCtx.currentTime); g.gain.exponentialRampToValueAtTime(0.01,audioCtx.currentTime+2); o.start(); o.stop(audioCtx.currentTime+2); }
-            if(type==='jump') { o.type='sawtooth'; o.frequency.setValueAtTime(100,audioCtx.currentTime); o.frequency.exponentialRampToValueAtTime(4000,audioCtx.currentTime+0.5); g.gain.setValueAtTime(1,audioCtx.currentTime); g.gain.exponentialRampToValueAtTime(0.01,audioCtx.currentTime+1.5); o.start(); o.stop(audioCtx.currentTime+1.5); }
-            if(type==='chase') { o.type='square'; o.frequency.value=40; g.gain.setValueAtTime(0.5,audioCtx.currentTime); g.gain.exponentialRampToValueAtTime(0.01,audioCtx.currentTime+0.5); o.start(); o.stop(audioCtx.currentTime+0.5); }
+        function handleInteract() {
+            for(let int of interactables) {
+                if(int.currentlyLooking) {
+                    int.action(int);
+                    break;
+                }
+            }
         }
 
-        // --- ENEMY ---
-        function setupEnemy() {
-            enemy = new THREE.Group();
-            const body = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.6, 3.5, 8), new THREE.MeshStandardMaterial({color:0x050505, roughness:1}));
-            const head = new THREE.Mesh(new THREE.SphereGeometry(0.6, 8, 8), new THREE.MeshStandardMaterial({color:0x111111}));
-            for(let i=0; i<4; i++) { let arm = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.05, 2, 6), new THREE.MeshStandardMaterial({color:0x050505})); arm.position.set(Math.random()>0.5?0.5:-0.5, 0, Math.random()>0.5?0.5:-0.5); arm.rotation.z = Math.random() * Math.PI; body.add(arm); }
-            const eyeM = new THREE.MeshBasicMaterial({color:0x440000});
-            const e1 = new THREE.Mesh(new THREE.SphereGeometry(0.15, 6, 6), eyeM); e1.position.set(-0.2, 0.1, 0.5);
-            const e2 = new THREE.Mesh(new THREE.SphereGeometry(0.15, 6, 6), eyeM); e2.position.set(0.2, 0.1, 0.5);
-            head.add(e1, e2); head.position.y = 2.2;
-            enemy.add(body, head); enemy.position.set(0, 0, -55); scene.add(enemy);
-            ePath = [ new THREE.Vector3(0, 0, -55), new THREE.Vector3(-10, 0, -40), new THREE.Vector3(10, 0, -20), new THREE.Vector3(-15, 0, 10), new THREE.Vector3(15, 0, 30), new THREE.Vector3(0, 0, 40) ];
+        // --- GAME STATES ---
+        function die() {
+            G.phase = 'DEAD';
+            controls.unlock();
+            playSound('monster_roar');
+            document.getElementById('death').style.display = 'flex';
         }
 
-        function triggerEnemySpawn() { S.enemyActive = true; speak("I can smell your fear."); playS('chase'); }
-
-        function updateEnemy(delta) {
-            if(!S.enemyActive || !enemy || S.hiding || S.phase !== 'GAME') return;
-            const p = enemy.position; let target = ePath[eIdx]; let dir = new THREE.Vector3().subVectors(target, p).normalize(); let speed = 3;
-            if(S.eState === 'chase') { dir.subVectors(camera.position, p).normalize(); speed = 6; $('fear').style.opacity = '0.8'; if(Math.random() < 0.02) playS('chase'); } else { $('fear').style.opacity = '0'; }
-            p.add(dir.multiplyScalar(speed * delta)); enemy.lookAt(p.x + dir.x, p.y + 1.5, p.z + dir.z);
-            enemy.children[0].rotation.z = Math.sin(clock.elapsedTime * 10) * 0.3;
-            enemy.children[1].rotation.x = Math.sin(clock.elapsedTime * 5) * 0.2;
-            if(p.distanceTo(target) < 2 && S.eState !== 'chase') eIdx = (eIdx + 1) % ePath.length;
-            const dist = p.distanceTo(camera.position);
-            if(dist < 15) { const ray = new THREE.Raycaster(p, new THREE.Vector3().subVectors(camera.position, p).normalize(), 0, dist); if(ray.intersectObjects(scene.children, true).length === 0) S.eState = 'chase'; } else S.eState = 'patrol';
-            if(dist < 1.5 && S.eState === 'chase') triggerJump();
+        function winGame() {
+            G.phase = 'WIN';
+            controls.unlock();
+            document.body.innerHTML = `<div style="color:#00ff00;text-align:center;margin-top:20%;"><h1 style="font-size:5rem;">ESCAPED</h1><p style="color:#888;">You survived The Dark Below.</p><button class="btn" style="margin-top:30px;" onclick="location.reload()">MAIN MENU</button></div>`;
         }
 
-        // --- CUTSCENES ---
-        let cQueue = [], cLine = null, cTimer = 0;
-        function playCut(script) { S.phase = 'CUT'; cQueue = [...script]; nextLine(); $('hud').style.display='none'; $('cut').style.display='block'; if(controls.isLocked) controls.unlock(); }
-        function nextLine() { if(!cQueue.length) { endCut(); return; } cLine = cQueue.shift(); $('spk').innerText = cLine.s; $('txt').innerText = ""; cTimer = 0; if(cLine.v) speak(cLine.t); }
-        function updateCut(delta) { if(!cLine) return; cTimer += delta; if($('txt').innerText.length < cLine.t.length) $('txt').innerText += cLine.t.charAt($('txt').innerText.length); if(cLine.c) { cutCam.position.lerp(cLine.c.p, delta*0.5); cutCam.lookAt(cLine.c.l); } }
-        function advCut() { if(cLine && $('txt').innerText.length < cLine.t.length) $('txt').innerText = cLine.t; else nextLine(); }
-        function endCut() { S.phase = 'GAME'; $('cut').style.display='none'; $('hud').style.display='block'; controls.lock(); }
-        function speak(text) { const u = new SpeechSynthesisUtterance(text); u.pitch=0.1; u.rate=0.8; speechSynthesis.speak(u); }
+        // --- INPUTS ---
+        function setupInputs() {
+            document.getElementById('play-btn').onclick = () => {
+                initAudio();
+                document.getElementById('menu').style.display = 'none';
+                document.getElementById('hud').style.display = 'block';
+                G.phase = 'PLAY';
+                controls.lock();
+            };
 
-        function triggerIntro() {
-            playCut([
-                {s:"SYSTEM", t:"Playtime Co. Archive Log. File 404.", v:true, c:{p:new THREE.Vector3(0, 5, 65), l:new THREE.Vector3(0,2,40)}},
-                {s:"DR. EVANS", t:"I am the last one left. The Prototype got the others. It wasn't supposed to be conscious.", v:true, c:{p:new THREE.Vector3(15, 3, 50), l:new THREE.Vector3(0,2,55)}},
-                {s:"DR. EVANS", t:"It learned how to mimic us. How to hunt. I've shut down the main power.", v:true, c:{p:new THREE.Vector3(-15, 2, 30), l:new THREE.Vector3(0,2,40)}},
-                {s:"DR. EVANS", t:"If you find this tape... get out. The Prototype is waiting in the dark.", v:true, c:{p:new THREE.Vector3(0, 1.7, 48), l:new THREE.Vector3(0,1.5,40)}}
-            ]);
-        }
+            document.getElementById('resume-btn').onclick = () => {
+                document.getElementById('pause').style.display = 'none';
+                G.paused = false;
+                controls.lock();
+            };
 
-        // --- CONTROLS & PHYSICS ---
-        function setupEvents() {
-            $('play').onclick = () => { initAudio(); $('menu').style.display='none'; triggerIntro(); };
-            $('quit').onclick = () => document.body.innerHTML = '<h1 style="color:#fff;text-align:center;margin-top:20%">QUIT</h1>';
-            $('res').onclick = () => { $('pause').style.display='none'; S.paused=false; controls.lock(); };
-            $('skip').onclick = advCut;
-
-            controls.addEventListener('lock', () => { if(S.phase==='GAME') $('pause').style.display='none'; });
-            controls.addEventListener('unlock', () => { if(S.phase==='GAME' && !S.dead) { $('pause').style.display='flex'; S.paused=true; } });
+            controls.addEventListener('lock', () => { if(G.phase==='PLAY') document.getElementById('pause').style.display = 'none'; });
+            controls.addEventListener('unlock', () => { if(G.phase==='PLAY') { document.getElementById('pause').style.display = 'flex'; G.paused = true; } });
 
             document.addEventListener('keydown', e => {
-                if(S.phase!=='GAME' || S.paused) return;
-                if(e.code==='KeyW') S.mv.f=true; if(e.code==='KeyS') S.mv.b=true; if(e.code==='KeyA') S.mv.l=true; if(e.code==='KeyD') S.mv.r=true;
-                if(e.code==='ShiftLeft') S.sprint=true;
-                if(e.code==='KeyX') { S.crouch = !S.crouch; camera.position.y = S.crouch ? 1.0 : 1.7; }
-                if(e.code==='KeyF') flash.visible = !flash.visible;
-                if(e.code==='KeyE') interact();
+                if(G.phase !== 'PLAY' || G.paused) return;
+                if(e.code==='KeyW') G.keys.w=true; if(e.code==='KeyA') G.keys.a=true; if(e.code==='KeyS') G.keys.s=true; if(e.code==='KeyD') G.keys.d=true;
+                if(e.code==='ShiftLeft') G.keys.shift=true;
+                if(e.code==='KeyX') { G.keys.x = !G.keys.x; camera.position.y = G.keys.x ? 1.0 : 1.7; }
+                if(e.code==='KeyF') { G.flashOn = !G.flashOn; flash.visible = G.flashOn; }
+                if(e.code==='KeyE') handleInteract();
             });
+
             document.addEventListener('keyup', e => {
-                if(e.code==='KeyW') S.mv.f=false; if(e.code==='KeyS') S.mv.b=false; if(e.code==='KeyA') S.mv.l=false; if(e.code==='KeyD') S.mv.r=false;
-                if(e.code==='ShiftLeft') S.sprint=false;
+                if(e.code==='KeyW') G.keys.w=false; if(e.code==='KeyA') G.keys.a=false; if(e.code==='KeyS') G.keys.s=false; if(e.code==='KeyD') G.keys.d=false;
+                if(e.code==='ShiftLeft') G.keys.shift=false;
             });
 
             window.addEventListener('resize', () => {
-                camera.aspect = cutCam.aspect = innerWidth/innerHeight;
-                camera.updateProjectionMatrix(); cutCam.updateProjectionMatrix();
+                camera.aspect = innerWidth/innerHeight;
+                camera.updateProjectionMatrix();
                 renderer.setSize(innerWidth, innerHeight);
             });
         }
 
-        function interact() {
-            if(S.hiding) { S.hiding=false; camera.position.y=1.7; $('prompt').innerText=""; return; }
-            const ray = new THREE.Raycaster(); ray.setFromCamera(new THREE.Vector2(0,0), camera);
-            let cl=null, md=3.5;
-            ints.forEach(i => { const h = ray.intersectObject(i.obj, true); if(h.length && h[0].distance<md) { md=h[0].distance; cl=i; } });
-            if(cl) cl.act();
-        }
-
-        function updateMov(delta) {
-            if(S.paused || S.phase!=='GAME' || S.hiding) return;
-            const speed = S.sprint ? 8.0 : (S.crouch ? 2.5 : 5.0);
-            S.vel.x -= S.vel.x * 10.0 * delta; S.vel.z -= S.vel.z * 10.0 * delta;
-            S.dir.z = Number(S.mv.f) - Number(S.mv.b); S.dir.x = Number(S.mv.r) - Number(S.mv.l); S.dir.normalize();
-            if(S.mv.f || S.mv.b) S.vel.z -= S.dir.z * speed * delta * 20;
-            if(S.mv.l || S.mv.r) S.vel.x -= S.dir.x * speed * delta * 20;
-            
-            const prevPos = camera.position.clone();
-            
-            controls.moveRight(-S.vel.x * delta);
-            controls.moveForward(-S.vel.z * delta);
-
-            // SOLID WALL COLLISION VIA RAYCASTING
-            resolveCollisions(prevPos);
-
-            // Hard map boundaries
-            camera.position.x = Math.max(-19.5, Math.min(19.5, camera.position.x));
-            camera.position.z = Math.max(-59.5, Math.min(59.5, camera.position.z));
-
-            // Headbob
-            if(S.mv.f || S.mv.b || S.mv.l || S.mv.r) {
-                if(!S.crouch) camera.position.y += Math.sin(clock.elapsedTime * (S.sprint?15:8)) * 0.05;
-            }
-        }
-
-        // RAYCASTING BASED COLLISION RESOLUTION
-        function resolveCollisions(prevPos) {
-            const playerRadius = 0.4;
-            const rayCount = 8; // Cast 8 rays in a circle around the player
-            const raycaster = new THREE.Raycaster();
-            
-            for (let i = 0; i < rayCount; i++) {
-                const angle = (i / rayCount) * Math.PI * 2;
-                
-                // Calculate ray direction based on player movement angle
-                const rayDir = new THREE.Vector3(Math.cos(angle), 0, Math.sin(angle));
-                
-                raycaster.set(camera.position, rayDir);
-                raycaster.near = 0;
-                raycaster.far = playerRadius;
-
-                // Check intersections ONLY against wall/door meshes
-                const intersects = raycaster.intersectObjects(collidables, false);
-
-                if (intersects.length > 0) {
-                    const collisionDist = intersects[0].distance;
-                    const pushBack = playerRadius - collisionDist;
-                    
-                    if (pushBack > 0) {
-                        // Push the player back along the ray direction
-                        camera.position.x -= rayDir.x * pushBack;
-                        camera.position.z -= rayDir.z * pushBack;
-                    }
-                }
-            }
-        }
-
-        function updateHUD() {
-            const ray = new THREE.Raycaster(); ray.setFromCamera(new THREE.Vector2(0,0), camera);
-            let show=false;
-            ints.forEach(i => { const h = ray.intersectObject(i.obj, true); if(h.length && h[0].distance<3.5) { $('prompt').innerText = `[E] ${i.name}`; show=true; } });
-            if(!show && !S.hiding) $('prompt').innerText='';
-        }
-
-        function triggerJump() {
-            if(S.dead) return; S.dead = true; S.phase = 'DEAD';
-            controls.unlock(); playS('jump'); $('jump').style.display='flex';
-            setTimeout(() => document.body.innerHTML = '<div style="color:#8b0000;text-align:center;margin-top:20%;"><h1 style="font-size:6rem;">CONSUMED</h1><p>The Prototype claims another.</p><button class="btn" style="margin-top:30px;" onclick="location.reload()">RETRY</button></div>', 1500);
-        }
-        function triggerWin() {
-            S.phase='WIN'; controls.unlock();
-            setTimeout(() => document.body.innerHTML = '<div style="color:#00ff00;text-align:center;margin-top:20%;"><h1 style="font-size:5rem;">ESCAPED</h1><p>You left it behind... but for how long?</p><button class="btn" style="margin-top:30px;" onclick="location.reload()">CONTINUE?</button></div>', 1000);
-        }
-
+        // --- MAIN LOOP ---
         function animate() {
             requestAnimationFrame(animate);
             const delta = Math.min(clock.getDelta(), 0.1);
-            if(S.phase==='CUT') { updateCut(delta); renderer.render(scene, cutCam); }
-            else if(S.phase==='GAME' && !S.paused) { updateMov(delta); updateEnemy(delta); updateHUD(); renderer.render(scene, camera); }
-            else renderer.render(scene, camera);
+
+            if(G.phase === 'PLAY' && !G.paused) {
+                updateMovement(delta);
+                updateMonster(delta);
+                updateInteraction();
+
+                // Battery drain
+                if(G.flashOn) {
+                    G.battery -= delta * 3;
+                    if(G.battery <= 0) { G.battery = 0; G.flashOn = false; flash.visible = false; }
+                } else {
+                    G.battery = Math.min(100, G.battery + delta * 2);
+                }
+                updateHUD();
+            }
+
+            renderer.render(scene, camera);
         }
 
         init();
