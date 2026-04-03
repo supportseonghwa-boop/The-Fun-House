@@ -3,98 +3,76 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Fun House: Return of the Prototype</title>
+    <title>THE FUN HOUSE: THE VOID</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Creepster&family=Press+Start+2P&display=swap');
-
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { overflow: hidden; background: #000; font-family: 'Press Start 2P', cursive; }
-        canvas { display: block; filter: contrast(1.2) brightness(0.8); }
+        canvas { display: block; }
 
-        /* UI OVERLAYS */
-        #ui { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; }
-        #crosshair { position: absolute; top: 50%; left: 50%; width: 20px; height: 20px; transform: translate(-50%, -50%); color: rgba(255,0,0,0.5); font-size: 24px; text-shadow: 0 0 5px red; }
-        
-        #hud {
-            position: absolute; bottom: 30px; left: 30px; background: rgba(10,0,0,0.9); padding: 15px; border: 2px solid #500; color: #ff2222; display: flex; align-items: center; gap: 15px;
-        }
-        #battery-bar { width: 150px; height: 15px; border: 2px solid #500; background: #100; position: relative; }
-        #battery-fill { height: 100%; background: #ff0000; box-shadow: 0 0 10px #f00; transition: width 0.3s; }
+        /* UI STYLING */
+        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 50; display: none; }
+        #crosshair { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: red; font-size: 20px; }
+        #hud { position: absolute; bottom: 40px; left: 40px; border-left: 5px solid red; padding-left: 20px; color: #fff; }
+        #battery-cont { width: 200px; height: 10px; background: #200; margin-top: 10px; border: 1px solid #500; }
+        #battery-fill { width: 100%; height: 100%; background: red; box-shadow: 0 0 10px red; }
 
-        /* MENUS */
-        .overlay-screen {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #000; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; color: #ff0000; text-align: center;
-        }
-        #title { font-family: 'Creepster', cursive; font-size: 8rem; text-shadow: 0 0 20px #f00; animation: flicker 2s infinite; }
-        @keyframes flicker { 0%, 18%, 22%, 25%, 53%, 57%, 100% { opacity: 1; } 20%, 24%, 55% { opacity: 0.3; } }
-        
-        .btn { background: #100; color: #f00; border: 3px solid #500; padding: 15px 40px; margin: 10px; font-family: inherit; cursor: pointer; transition: 0.2s; }
-        .btn:hover { background: #f00; color: #000; transform: scale(1.1); }
+        /* MENU & CUTSCENE */
+        .overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #000; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; color: red; }
+        #main-menu h1 { font-family: 'Creepster'; font-size: 8rem; text-shadow: 0 0 20px red; margin-bottom: 20px; }
+        .btn { background: transparent; border: 2px solid red; color: red; padding: 15px 40px; font-family: inherit; cursor: pointer; margin: 10px; transition: 0.3s; }
+        .btn:hover { background: red; color: black; box-shadow: 0 0 20px red; }
 
-        /* CUTSCENE */
-        #cutscene { background: #000; z-index: 200; display: none; }
-        #cutscene-img { font-size: 15rem; margin-bottom: 20px; filter: grayscale(1) contrast(2); animation: flash 0.1s infinite; }
-        @keyframes flash { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 0.9; } }
-        #cutscene-text { font-size: 1.2rem; max-width: 800px; color: #fff; line-height: 1.6; }
-
-        #jumpscare { position: fixed; top:0; left:0; width:100vw; height:100vh; background: url('https://i.imgur.com/vH3m0G6.jpeg') center/cover; z-index: 1000; display: none; }
+        #subtitles { position: absolute; bottom: 15%; width: 100%; text-align: center; color: white; font-size: 1.2rem; text-shadow: 2px 2px #000; z-index: 150; pointer-events: none; }
     </style>
 </head>
 <body>
 
-    <div id="jumpscare"></div>
-
-    <div id="menu" class="overlay-screen">
-        <div id="title">THE FUN HOUSE</div>
-        <p style="color:#444; margin-bottom:40px;">YOU SHOULDN'T HAVE COME BACK</p>
-        <button class="btn" onclick="startStory()">NEW GAME</button>
-        <button class="btn" onclick="loadGame()">CONTINUE</button>
+    <div id="main-menu" class="overlay">
+        <h1>THE FUN HOUSE</h1>
+        <p style="color: #444; margin-bottom: 40px;">CHAPTER 1: I SEE YOU</p>
+        <button class="btn" onclick="initCinematic()">START NEW GAME</button>
+        <button class="btn" onclick="loadSave()">LOAD PREVIOUS</button>
     </div>
 
-    <div id="pause-menu" class="overlay-screen" style="display:none; background: rgba(0,0,0,0.8);">
-        <h1>PAUSED</h1>
-        <button class="btn" onclick="saveGame()">SAVE PROGRESS</button>
-        <button class="btn" onclick="resumeGame()">RESUME</button>
-        <button class="btn" onclick="location.reload()">MAIN MENU</button>
-    </div>
+    <div id="subtitles"></div>
 
-    <div id="cutscene" class="overlay-screen">
-        <div id="cutscene-img">👁️</div>
-        <div id="cutscene-text"></div>
-        <p style="margin-top:50px; font-size: 0.7rem; color: #333;">PRESS SPACE TO SKIP</p>
-    </div>
-
-    <div id="ui" style="display:none;">
+    <div id="ui-layer">
         <div id="crosshair">+</div>
         <div id="hud">
-            <span>LIGHT</span>
-            <div id="battery-bar"><div id="battery-fill" style="width:100%"></div></div>
-            <div id="status-msg" style="font-size:0.8rem; color: #aaa;"></div>
+            <div>FLASHLIGHT</div>
+            <div id="battery-cont"><div id="battery-fill"></div></div>
         </div>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
     <script>
-        let scene, camera, renderer, clock, flashlight, handGroup;
-        let isLocked = false, gameRunning = false, battery = 100;
-        let move = { f: false, b: false, l: false, r: false };
-        let prototype, prototypeTrapped = false;
-        let audioCtx, footstepOsc, bgNoise;
+        let scene, camera, renderer, clock, flashlight, playerHand;
+        let isLocked = false, inCinematic = false, gameActive = false;
+        let battery = 100, pitch = 0, yaw = 0;
+        let audioCtx, trailerSound;
 
-        const storySteps = [
-            { t: "Exactly 365 days since the incident...", img: "🏚️" },
-            { t: "The police found nothing. No body. No Prototype.", img: "🚨" },
-            { t: "But the dreams... they kept showing me the basement.", img: "🛌" },
-            { t: "I found a key in my mailbox yesterday with no return address.", img: "🔑" },
-            { t: "I'm standing at the front door now. It's colder than I remember.", img: "❄️" },
-            { t: "The Fun House is waiting for its favorite guest.", img: "🤡" },
-            { t: "This ends tonight. I have to trap him in the foundation.", img: "🧱" },
-            { t: "Don't look back. Don't stop running.", img: "🏃" }
+        const storyLines = [
+            "It has been one year since I escaped the walls...",
+            "But the Prototype... he never truly left my mind.",
+            "The house calls to me in the static of the television.",
+            "I am returning to the void. Back to where it all began.",
+            "The Fun House is hungry... and I am the only guest."
         ];
 
-        function init() {
+        function initCinematic() {
+            document.getElementById('main-menu').style.display = 'none';
+            inCinematic = true;
+            
+            // Start Audio Context for the trailer sounds
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            setupWorld();
+            playCinematic();
+        }
+
+        function setupWorld() {
             scene = new THREE.Scene();
-            scene.fog = new THREE.Fog(0x000000, 1, 15);
+            scene.fog = new THREE.Fog(0x000000, 1, 20);
             
             camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
             renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -102,247 +80,133 @@
             renderer.shadowMap.enabled = true;
             document.body.appendChild(renderer.domElement);
 
+            // Spawning in the custom coordinates from "I See You" build
+            camera.position.set(193, 1.7, 193);
+
             // Lighting
-            const ambient = new THREE.AmbientLight(0x050000, 0.1);
-            scene.add(ambient);
+            scene.add(new THREE.AmbientLight(0x0a0a0a));
 
-            // Flashlight & Hand
-            handGroup = new THREE.Group();
-            const armGeom = new THREE.BoxGeometry(0.2, 0.2, 0.8);
-            const armMat = new THREE.MeshStandardMaterial({ color: 0x3d2b1f });
-            const arm = new THREE.Mesh(armGeom, armMat);
-            arm.position.set(0.4, -0.4, -0.5);
-            arm.rotation.x = -0.2;
-            handGroup.add(arm);
+            // Hand & Flashlight
+            playerHand = new THREE.Group();
+            const arm = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.2, 0.7), new THREE.MeshStandardMaterial({color: 0x3d2b1f}));
+            arm.position.set(0.5, -0.4, -0.6);
+            playerHand.add(arm);
 
-            flashlight = new THREE.SpotLight(0xffffff, 15, 20, Math.PI/6, 0.5, 1);
-            flashlight.position.set(0.4, -0.3, -0.8);
+            flashlight = new THREE.SpotLight(0xffffff, 10, 25, Math.PI/6, 0.4);
+            flashlight.position.set(0.5, -0.3, -0.8);
             flashlight.castShadow = true;
-            handGroup.add(flashlight);
-            flashlight.target.position.set(0.4, -0.3, -10);
-            handGroup.add(flashlight.target);
+            playerHand.add(flashlight);
+            flashlight.target.position.set(0.5, -0.3, -10);
+            playerHand.add(flashlight.target);
 
-            camera.add(handGroup);
+            camera.add(playerHand);
             scene.add(camera);
 
-            // Environment
-            const floor = new THREE.Mesh(new THREE.PlaneGeometry(50, 50), new THREE.MeshStandardMaterial({ color: 0x111111 }));
+            // Fun House Environment (Restored Layout)
+            const floor = new THREE.Mesh(new THREE.PlaneGeometry(100, 100), new THREE.MeshStandardMaterial({color: 0x111111}));
             floor.rotation.x = -Math.PI/2;
-            floor.receiveShadow = true;
+            floor.position.set(200, 0, 200);
             scene.add(floor);
 
-            createWalls();
-            createPrototype();
-            initAudio();
-
-            window.addEventListener('resize', onResize);
-            document.addEventListener('keydown', e => handleKeys(e, true));
-            document.addEventListener('keyup', e => handleKeys(e, false));
-            document.addEventListener('mousemove', onMouseMove);
-            
-            document.addEventListener('pointerlockchange', () => {
-                isLocked = document.pointerLockElement === renderer.domElement;
-            });
+            const wallMat = new THREE.MeshStandardMaterial({color: 0x220000});
+            const northWall = new THREE.Mesh(new THREE.BoxGeometry(40, 10, 1), wallMat);
+            northWall.position.set(200, 5, 180);
+            scene.add(northWall);
         }
 
-        function createWalls() {
-            const wallMat = new THREE.MeshStandardMaterial({ color: 0x221111 });
-            const box = new THREE.BoxGeometry(30, 10, 1);
-            
-            const backWall = new THREE.Mesh(box, wallMat);
-            backWall.position.set(0, 5, -15);
-            scene.add(backWall);
-
-            // Add the Trap Lever
-            const lever = new THREE.Mesh(new THREE.BoxGeometry(0.2, 1, 0.2), new THREE.MeshStandardMaterial({color: 0xff0000}));
-            lever.position.set(0, 2, -14.4);
-            lever.name = "LEVER";
-            scene.add(lever);
-        }
-
-        function createPrototype() {
-            const group = new THREE.Group();
-            const body = new THREE.Mesh(new THREE.BoxGeometry(1, 3, 0.5), new THREE.MeshStandardMaterial({color: 0x000000}));
-            const head = new THREE.Mesh(new THREE.SphereGeometry(0.5), new THREE.MeshStandardMaterial({color: 0xffffff}));
-            head.position.y = 2;
-            group.add(body, head);
-            group.position.set(5, 0, -10);
-            prototype = group;
-            scene.add(prototype);
-        }
-
-        function startStory() {
-            document.getElementById('menu').style.display = 'none';
-            const screen = document.getElementById('cutscene');
-            const txt = document.getElementById('cutscene-text');
-            const img = document.getElementById('cutscene-img');
-            screen.style.display = 'flex';
-
-            let step = 0;
-            const interval = setInterval(() => {
-                if (step >= storySteps.length) {
-                    clearInterval(interval);
-                    startGame();
-                } else {
-                    txt.innerText = storySteps[step].t;
-                    img.innerText = storySteps[step].img;
-                    step++;
-                }
-            }, 6800); // Distributed over ~55 seconds
-
-            window.addEventListener('keydown', (e) => {
-                if (e.code === 'Space') {
-                    clearInterval(interval);
-                    startGame();
-                }
-            }, { once: true });
-        }
-
-        function startGame() {
-            document.getElementById('cutscene').style.display = 'none';
-            document.getElementById('ui').style.display = 'block';
-            if(!scene) init();
-            gameRunning = true;
-            renderer.domElement.requestPointerLock();
+        async function playCinematic() {
+            const subs = document.getElementById('subtitles');
             clock = new THREE.Clock();
-            animate();
-        }
 
-        function handleKeys(e, isDown) {
-            if (e.code === 'KeyW') move.f = isDown;
-            if (e.code === 'KeyS') move.b = isDown;
-            if (e.code === 'KeyA') move.l = isDown;
-            if (e.code === 'KeyD') move.r = isDown;
-            if (isDown && e.code === 'Escape') togglePause();
-            if (isDown && e.code === 'KeyE') checkInteract();
-        }
+            for (let i = 0; i < storyLines.length; i++) {
+                // Dramatic Trailer "BOOM"
+                playTrailerBoom();
+                
+                // Voice Over (Using Synthesis)
+                const msg = new SpeechSynthesisUtterance(storyLines[i]);
+                msg.pitch = 0.1; // Deep creepy voice
+                msg.rate = 0.8;
+                window.speechSynthesis.speak(msg);
 
-        function onMouseMove(e) {
-            if (!isLocked || !gameRunning) return;
-            camera.rotation.y -= e.movementX * 0.002;
-            camera.rotation.x -= e.movementY * 0.002;
-            camera.rotation.x = Math.max(-Math.PI/2.5, Math.min(Math.PI/2.5, camera.rotation.x));
-        }
-
-        function checkInteract() {
-            if (camera.position.distanceTo(new THREE.Vector3(0, 2, -14.4)) < 3) {
-                if (prototype.position.distanceTo(new THREE.Vector3(0, 0, -12)) < 5) {
-                    prototypeTrapped = true;
-                    document.getElementById('status-msg').innerText = "PROTOTYPE SEALED. YOU SURVIVED.";
-                    setTimeout(() => location.reload(), 5000);
-                } else {
-                    document.getElementById('status-msg').innerText = "HE IS NOT CLOSE ENOUGH TO THE TRAP!";
+                subs.innerText = storyLines[i];
+                
+                // Cinematic Camera Pan
+                const startPos = camera.position.clone();
+                const endPos = new THREE.Vector3(193, 1.7, 193 - (i * 2));
+                
+                let t = 0;
+                while (t < 1) {
+                    t += 0.005;
+                    camera.position.lerpVectors(startPos, endPos, t);
+                    camera.rotation.y += 0.001;
+                    renderer.render(scene, camera);
+                    await new Promise(r => requestAnimationFrame(r));
                 }
+                
+                await new Promise(r => setTimeout(r, 2000));
             }
+
+            subs.innerText = "";
+            inCinematic = false;
+            startGame();
         }
 
-        function initAudio() {
-            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            // Drone sound
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.type = 'sawtooth';
-            osc.frequency.setValueAtTime(40, audioCtx.currentTime);
-            gain.gain.value = 0.05;
-            osc.connect(gain).connect(audioCtx.destination);
-            osc.start();
-        }
-
-        function playFootstep() {
-            if (audioCtx.state === 'suspended') audioCtx.resume();
+        function playTrailerBoom() {
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
             osc.type = 'sine';
-            osc.frequency.setValueAtTime(60, audioCtx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.1);
+            osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(40, audioCtx.currentTime + 1.5);
+            gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 2);
             osc.connect(gain).connect(audioCtx.destination);
             osc.start();
-            osc.stop(audioCtx.currentTime + 0.1);
+            osc.stop(audioCtx.currentTime + 2);
         }
 
-        function saveGame() {
-            const data = { x: camera.position.x, z: camera.position.z, battery: battery };
-            localStorage.setItem('funhouse_save', JSON.stringify(data));
-            document.getElementById('status-msg').innerText = "PROGRESS SAVED";
-            resumeGame();
-        }
-
-        function loadGame() {
-            const saved = localStorage.getItem('funhouse_save');
-            if (saved) {
-                const data = JSON.parse(saved);
-                init();
-                camera.position.x = data.x;
-                camera.position.z = data.z;
-                battery = data.battery;
-                startGame();
-            } else {
-                alert("No save found!");
-            }
-        }
-
-        function togglePause() {
-            gameRunning = false;
-            document.exitPointerLock();
-            document.getElementById('pause-menu').style.display = 'flex';
-        }
-
-        function resumeGame() {
-            document.getElementById('pause-menu').style.display = 'none';
-            gameRunning = true;
+        function startGame() {
+            gameActive = true;
+            document.getElementById('ui-layer').style.display = 'block';
             renderer.domElement.requestPointerLock();
+            
+            document.addEventListener('mousemove', (e) => {
+                if (document.pointerLockElement === renderer.domElement) {
+                    yaw -= e.movementX * 0.002;
+                    pitch -= e.movementY * 0.002;
+                    pitch = Math.max(-Math.PI/2, Math.min(Math.PI/2, pitch));
+                    camera.rotation.set(pitch, yaw, 0, 'YXZ');
+                }
+            });
+
+            animate();
         }
 
         function animate() {
-            if (!gameRunning) return;
+            if (!gameActive) return;
             requestAnimationFrame(animate);
             const delta = clock.getDelta();
 
-            // Player Movement
-            const speed = 4;
-            const dir = new THREE.Vector3();
-            camera.getWorldDirection(dir);
-            dir.y = 0; dir.normalize();
-            
-            const side = new THREE.Vector3().crossVectors(camera.up, dir).normalize();
+            // Hand Sway Logic
+            playerHand.position.y = Math.sin(Date.now() * 0.004) * 0.02;
+            playerHand.position.x = Math.cos(Date.now() * 0.002) * 0.01;
 
-            if (move.f) { camera.position.addScaledVector(dir, speed * delta); if(Math.random() < 0.05) playFootstep(); }
-            if (move.b) camera.position.addScaledVector(dir, -speed * delta);
-            if (move.l) camera.position.addScaledVector(side, speed * delta);
-            if (move.r) camera.position.addScaledVector(side, -speed * delta);
-
-            // Hand Sway
-            handGroup.position.y = Math.sin(Date.now() * 0.005) * 0.02;
-            handGroup.position.x = Math.cos(Date.now() * 0.003) * 0.01;
-
-            // Prototype AI
-            if (!prototypeTrapped) {
-                const enemyDir = new THREE.Vector3().subVectors(camera.position, prototype.position).normalize();
-                prototype.position.addScaledVector(enemyDir, 2.5 * delta);
-                prototype.lookAt(camera.position);
-
-                if (prototype.position.distanceTo(camera.position) < 1.5) {
-                    gameRunning = false;
-                    document.getElementById('jumpscare').style.display = 'block';
-                    setTimeout(() => location.reload(), 2000);
-                }
-            }
-
-            // Battery drain
-            battery -= 0.5 * delta;
+            // Flashlight battery logic
+            battery -= 0.1 * delta;
             document.getElementById('battery-fill').style.width = battery + "%";
-            if (battery <= 0) flashlight.intensity = Math.random() > 0.8 ? 5 : 0;
 
             renderer.render(scene, camera);
         }
 
-        function onResize() {
+        window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
-        }
+        });
 
-        init();
+        function loadSave() {
+            alert("No saved data found in session. Starting fresh...");
+            initCinematic();
+        }
     </script>
 </body>
 </html>
