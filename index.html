@@ -7,214 +7,191 @@
 <link href="https://fonts.googleapis.com/css2?family=Creepster&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 <style>
-:root{--bg:#0a0505;--fg:#e8d8c8;--muted:#5a4a3a;--accent:#cc2200;--accent2:#ff4422;--card:rgba(15,8,8,0.92);--border:#3a1515;--green:#22cc44;--blue:#2266cc}
 *{margin:0;padding:0;box-sizing:border-box}
-body{background:var(--bg);color:var(--fg);font-family:'Share Tech Mono',monospace;overflow:hidden;width:100vw;height:100vh;cursor:none}
-canvas{display:block}
+:root{
+  --blood:#8B0000;--blood-bright:#FF2222;--dark:#0a0606;--dim:#1a1010;
+  --text:#c8b0a0;--green:#00ff66;--yellow:#ffcc00;
+}
+body{background:var(--dark);overflow:hidden;font-family:'Share Tech Mono',monospace;color:var(--text);cursor:none;user-select:none}
+canvas{display:block;position:fixed;top:0;left:0;z-index:1}
 
-/* ===== VHS OVERLAY ===== */
-#vhs-overlay{position:fixed;inset:0;pointer-events:none;z-index:50;mix-blend-mode:screen;opacity:0.12}
-#vhs-overlay::before{content:'';position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.15) 2px,rgba(0,0,0,0.15) 4px);animation:scanlines 0.1s steps(2) infinite}
-#vhs-overlay::after{content:'';position:absolute;inset:0;background:linear-gradient(transparent 50%,rgba(200,50,50,0.03) 50%);background-size:100% 4px;animation:scanlines 8s linear infinite}
-@keyframes scanlines{to{transform:translateY(4px)}}
-#vhs-noise{position:fixed;inset:0;pointer-events:none;z-index:51;opacity:0;transition:opacity 0.3s}
+/* Title Screen */
+#title-screen{position:fixed;inset:0;z-index:1000;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--dark)}
+#title-screen::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 50% 30%,rgba(139,0,0,0.15),transparent 70%)}
+#title-screen h1{font-family:'Creepster',cursive;font-size:clamp(3rem,8vw,6rem);color:var(--blood-bright);text-shadow:0 0 40px rgba(255,0,0,0.4),0 0 80px rgba(139,0,0,0.3);letter-spacing:0.05em;position:relative;z-index:1;animation:titlePulse 4s ease-in-out infinite}
+#title-screen .subtitle{font-size:clamp(0.8rem,2vw,1.1rem);color:#664444;margin-top:0.5rem;letter-spacing:0.3em;text-transform:uppercase;position:relative;z-index:1}
+#title-screen .play-btn{margin-top:3rem;padding:1rem 3rem;background:transparent;border:2px solid var(--blood);color:var(--blood-bright);font-family:'Share Tech Mono',monospace;font-size:1.1rem;cursor:pointer;letter-spacing:0.2em;text-transform:uppercase;transition:all 0.3s;position:relative;z-index:1}
+#title-screen .play-btn:hover{background:var(--blood);box-shadow:0 0 30px rgba(139,0,0,0.5);transform:scale(1.05)}
+#title-screen .controls-hint{position:absolute;bottom:2rem;font-size:0.7rem;color:#443333;text-align:center;line-height:1.8}
+@keyframes titlePulse{0%,100%{opacity:1;filter:brightness(1)}50%{opacity:0.85;filter:brightness(0.8)}}
 
-/* ===== HUD ===== */
-#hud{position:fixed;inset:0;pointer-events:none;z-index:100}
-#crosshair{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:4px;height:4px;border-radius:50%;background:rgba(255,255,255,0.5);box-shadow:0 0 6px rgba(255,255,255,0.2);transition:all 0.2s}
-#crosshair.interact{width:24px;height:24px;border:2px solid var(--accent2);background:transparent;box-shadow:0 0 12px var(--accent)}
+/* VHS Overlay */
+#vhs-overlay{position:fixed;inset:0;z-index:500;pointer-events:none;opacity:0;transition:opacity 0.3s}
+#vhs-overlay.active{opacity:1}
+.vhs-line{position:absolute;left:0;right:0;height:2px;background:rgba(255,255,255,0.03);animation:scanline 8s linear infinite}
+.vhs-noise{position:absolute;inset:0;opacity:0.04;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");mix-blend-mode:overlay}
+.vhs-bar{position:absolute;left:0;right:0;height:60px;background:rgba(255,255,255,0.02);animation:vhsBar 4s ease-in-out infinite}
+@keyframes scanline{0%{top:-2px}100%{top:100%}}
+@keyframes vhsBar{0%,100%{top:-60px;opacity:0}10%{opacity:1}90%{opacity:1}95%{top:calc(100% + 60px);opacity:0}}
 
-#battery-bar{position:absolute;bottom:80px;left:50%;transform:translateX(-50%);width:120px;height:6px;background:rgba(0,0,0,0.6);border:1px solid #333;border-radius:3px;overflow:hidden;opacity:0;transition:opacity 0.5s}
-#battery-bar.show{opacity:1}
-#battery-fill{height:100%;background:var(--green);transition:width 0.3s,background 0.3s;width:100%;border-radius:2px}
-#battery-fill.low{background:#cc8800}
-#battery-fill.critical{background:var(--accent);animation:battPulse 0.5s infinite}
-@keyframes battPulse{0%,100%{opacity:1}50%{opacity:0.3}}
+/* HUD */
+#hud{position:fixed;inset:0;z-index:100;pointer-events:none;opacity:0;transition:opacity 0.5s}
+#hud.active{opacity:1}
+#crosshair{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:4px;height:4px;border:1px solid rgba(200,176,160,0.5);border-radius:50%}
+#battery-bar{position:absolute;bottom:30px;left:30px;display:flex;align-items:center;gap:8px}
+#battery-bar i{color:var(--yellow);font-size:0.9rem}
+#battery-track{width:100px;height:6px;background:rgba(255,255,255,0.08);border-radius:3px;overflow:hidden}
+#battery-fill{height:100%;background:var(--green);border-radius:3px;transition:width 0.3s,background 0.3s}
+#stamina-bar{position:absolute;bottom:52px;left:30px;display:flex;align-items:center;gap:8px}
+#stamina-bar i{color:#4488ff;font-size:0.8rem}
+#stamina-track{width:80px;height:4px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden}
+#stamina-fill{height:100%;background:#4488ff;border-radius:2px;transition:width 0.2s}
+#sanity-bar{position:absolute;top:30px;right:30px;display:flex;align-items:center;gap:8px}
+#sanity-bar i{color:var(--blood-bright);font-size:0.8rem}
+#sanity-track{width:80px;height:4px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden}
+#sanity-fill{height:100%;background:var(--blood-bright);border-radius:2px;transition:width 0.5s}
+#interact-prompt{position:absolute;top:55%;left:50%;transform:translate(-50%,-50%);font-size:0.85rem;color:var(--text);background:rgba(0,0,0,0.6);padding:6px 16px;border-radius:4px;border:1px solid rgba(200,176,160,0.15);opacity:0;transition:opacity 0.2s;white-space:nowrap}
+#interact-prompt.visible{opacity:1}
+#area-name{position:absolute;top:80px;left:50%;transform:translateX(-50%);font-family:'Creepster',cursive;font-size:1.5rem;color:var(--blood-bright);text-shadow:0 0 20px rgba(139,0,0,0.5);opacity:0;transition:opacity 1s;letter-spacing:0.1em}
+#area-name.visible{opacity:1}
 
-#flashlight-icon{position:absolute;bottom:70px;left:50%;transform:translateX(calc(-50% - 80px));font-size:14px;color:#666;opacity:0;transition:opacity 0.5s,color 0.3s}
-#flashlight-icon.show{opacity:1}
-#flashlight-icon.on{color:var(--green)}
-#flashlight-icon.off{color:#444}
+/* Inventory */
+#inventory-bar{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);display:flex;gap:4px}
+.inv-slot{width:56px;height:56px;background:rgba(10,6,6,0.8);border:1px solid rgba(139,0,0,0.3);border-radius:4px;display:flex;align-items:center;justify-content:center;position:relative;pointer-events:auto;cursor:pointer;transition:all 0.2s}
+.inv-slot:hover{border-color:var(--blood-bright);background:rgba(139,0,0,0.15)}
+.inv-slot.has-item{border-color:rgba(139,0,0,0.6)}
+.inv-slot .item-icon{font-size:1.4rem}
+.inv-slot .slot-num{position:absolute;top:2px;left:4px;font-size:0.55rem;color:#444}
+.inv-slot.selected{border-color:var(--blood-bright);box-shadow:0 0 10px rgba(139,0,0,0.4)}
 
-#stamina-bar{position:absolute;bottom:80px;left:50%;transform:translateX(calc(-50% + 80px));width:60px;height:4px;background:rgba(0,0,0,0.4);border-radius:2px;overflow:hidden}
-#stamina-fill{height:100%;background:var(--accent2);width:100%;transition:width 0.2s;border-radius:2px}
+/* Note Modal */
+#note-modal{position:fixed;inset:0;z-index:200;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,0.85)}
+#note-modal.active{display:flex}
+#note-content{max-width:500px;padding:2.5rem;background:linear-gradient(135deg,#1a1410,#0f0a08);border:1px solid rgba(139,0,0,0.3);border-radius:8px;position:relative}
+#note-content h3{font-family:'Creepster',cursive;color:var(--blood-bright);font-size:1.3rem;margin-bottom:1rem}
+#note-content p{font-size:0.85rem;line-height:1.8;color:#998877}
+#note-content .close-note{position:absolute;top:10px;right:14px;color:#554444;font-size:0.7rem;cursor:pointer;pointer-events:auto}
+#note-content .close-note:hover{color:var(--text)}
 
-#interact-prompt{position:absolute;bottom:140px;left:50%;transform:translateX(-50%);font-size:14px;color:var(--accent2);opacity:0;transition:opacity 0.3s;text-shadow:0 0 8px rgba(204,34,0,0.5);letter-spacing:1px}
-#interact-prompt.show{opacity:1}
+/* Keypad Modal */
+#keypad-modal{position:fixed;inset:0;z-index:200;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,0.85)}
+#keypad-modal.active{display:flex}
+#keypad-box{background:linear-gradient(135deg,#1a1410,#0f0a08);border:1px solid rgba(139,0,0,0.4);border-radius:8px;padding:1.5rem;width:280px;text-align:center}
+#keypad-box h3{font-family:'Creepster',cursive;color:var(--blood-bright);margin-bottom:1rem;font-size:1.1rem}
+#keypad-display{background:#050505;border:1px solid #333;border-radius:4px;height:40px;line-height:40px;font-size:1.4rem;letter-spacing:0.4em;color:var(--green);margin-bottom:1rem}
+#keypad-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:1rem}
+.keypad-btn{padding:12px;background:#111;border:1px solid #333;color:var(--text);font-family:'Share Tech Mono',monospace;font-size:1.1rem;cursor:pointer;border-radius:4px;transition:all 0.15s;pointer-events:auto}
+.keypad-btn:hover{background:#1a1010;border-color:var(--blood)}
+.keypad-btn:active{transform:scale(0.95)}
+.keypad-btn.clear{color:var(--blood-bright)}
+.keypad-btn.enter{background:rgba(139,0,0,0.2);border-color:var(--blood);color:var(--blood-bright)}
+#keypad-feedback{font-size:0.75rem;min-height:1.2em;color:var(--blood-bright)}
 
-/* ===== INVENTORY ===== */
-#inventory-bar{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);display:flex;gap:4px;pointer-events:auto}
-.inv-slot{width:52px;height:52px;background:rgba(10,5,5,0.85);border:1px solid #2a1515;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:18px;color:#555;transition:all 0.2s;cursor:pointer;position:relative}
-.inv-slot:hover{border-color:var(--accent);background:rgba(30,10,10,0.9)}
-.inv-slot.has-item{border-color:#5a3030;color:var(--fg)}
-.inv-slot.selected{border-color:var(--accent2);box-shadow:0 0 12px rgba(255,68,34,0.3);background:rgba(40,10,10,0.9)}
-.inv-slot .slot-key{position:absolute;top:2px;left:4px;font-size:9px;color:#444}
-.inv-slot .item-label{position:absolute;bottom:-16px;font-size:8px;color:#666;white-space:nowrap;max-width:60px;overflow:hidden;text-overflow:ellipsis}
+/* Glitch effect */
+.glitch-text{animation:glitch 0.3s ease-in-out}
+@keyframes glitch{0%{transform:translate(0);filter:hue-rotate(0)}20%{transform:translate(-3px,1px);filter:hue-rotate(90deg)}40%{transform:translate(3px,-1px);filter:hue-rotate(-90deg)}60%{transform:translate(-1px,3px)}80%{transform:translate(1px,-3px);filter:hue-rotate(45deg)}100%{transform:translate(0);filter:hue-rotate(0)}}
 
-/* ===== SANITY METER ===== */
-#sanity-container{position:absolute;top:20px;right:20px;display:flex;flex-direction:column;align-items:center;gap:4px}
-#sanity-label{font-size:9px;color:#555;letter-spacing:2px;text-transform:uppercase}
-#sanity-bar{width:80px;height:3px;background:rgba(0,0,0,0.5);border-radius:2px;overflow:hidden}
-#sanity-fill{height:100%;background:var(--accent2);width:100%;transition:width 1s;border-radius:2px}
+/* Danger vignette */
+#danger-vignette{position:fixed;inset:0;z-index:90;pointer-events:none;opacity:0;transition:opacity 0.5s;background:radial-gradient(ellipse at center,transparent 40%,rgba(139,0,0,0.4) 100%)}
+#danger-vignette.active{opacity:1}
 
-/* ===== NOTE UI ===== */
-#note-ui{position:fixed;inset:0;z-index:200;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,0.85);backdrop-filter:blur(4px)}
-#note-ui.show{display:flex}
-#note-content{background:linear-gradient(135deg,#1a1008,#0d0804);border:1px solid #3a2515;border-radius:2px;padding:40px;max-width:480px;width:90%;font-size:14px;line-height:1.8;color:#c8a878;position:relative;box-shadow:0 0 40px rgba(0,0,0,0.8),inset 0 0 60px rgba(30,15,5,0.3)}
-#note-content::before{content:'';position:absolute;inset:8px;border:1px solid rgba(80,50,20,0.2);pointer-events:none}
-#note-title{font-family:'Creepster',cursive;font-size:22px;color:var(--accent);margin-bottom:16px;letter-spacing:2px}
-#note-text{white-space:pre-wrap}
-#note-close{position:absolute;top:10px;right:14px;font-size:12px;color:#555;cursor:pointer;pointer-events:auto;transition:color 0.2s}
-#note-close:hover{color:var(--accent)}
+/* Jumpscare */
+#jumpscare{position:fixed;inset:0;z-index:600;display:none;align-items:center;justify-content:center;background:#000}
+#jumpscare.active{display:flex;animation:jumpFlash 0.5s ease-out}
+#jumpscare canvas{width:100%;height:100%}
+@keyframes jumpFlash{0%{opacity:0;filter:brightness(5)}15%{opacity:1;filter:brightness(3)}100%{opacity:1;filter:brightness(1)}}
 
-/* ===== CODE PUZZLE UI ===== */
-#code-ui{position:fixed;inset:0;z-index:200;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,0.8)}
-#code-ui.show{display:flex}
-#code-panel{background:linear-gradient(180deg,#1a1215,#0a0808);border:2px solid var(--accent);border-radius:4px;padding:30px;text-align:center;box-shadow:0 0 60px rgba(204,34,0,0.15)}
-#code-panel h3{font-family:'Creepster',cursive;color:var(--accent2);font-size:20px;margin-bottom:20px;letter-spacing:2px}
-#code-display{display:flex;gap:8px;justify-content:center;margin-bottom:20px}
-.code-digit{width:48px;height:56px;background:#0a0505;border:1px solid #3a1515;border-radius:2px;display:flex;align-items:center;justify-content:center;font-size:28px;color:var(--accent2);font-family:'Share Tech Mono',monospace}
-#code-buttons{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;max-width:200px;margin:0 auto 16px}
-.code-btn{padding:10px;font-size:16px;font-family:'Share Tech Mono',monospace;background:#1a0808;border:1px solid #3a1515;color:var(--fg);border-radius:2px;cursor:pointer;transition:all 0.15s}
-.code-btn:hover{background:#2a1010;border-color:var(--accent)}
-.code-btn:active{transform:scale(0.95)}
-#code-submit{padding:10px 30px;font-size:14px;font-family:'Share Tech Mono',monospace;background:var(--accent);border:none;color:#fff;border-radius:2px;cursor:pointer;letter-spacing:2px;transition:all 0.15s}
-#code-submit:hover{background:var(--accent2)}
-#code-close{margin-top:12px;font-size:11px;color:#444;cursor:pointer}
-#code-error{color:var(--accent);font-size:12px;margin-top:10px;min-height:18px}
+/* Loading */
+#loading{position:fixed;inset:0;z-index:2000;background:var(--dark);display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity 0.8s}
+#loading.hidden{opacity:0;pointer-events:none}
+#loading .spinner{width:40px;height:40px;border:2px solid #222;border-top-color:var(--blood);border-radius:50%;animation:spin 1s linear infinite;margin-bottom:1.5rem}
+#loading p{color:#444;font-size:0.8rem;letter-spacing:0.2em}
+@keyframes spin{to{transform:rotate(360deg)}}
 
-/* ===== JUMPSCARE ===== */
-#jumpscare{position:fixed;inset:0;z-index:500;display:none;align-items:center;justify-content:center;background:#000}
-#jumpscare.show{display:flex}
-#jumpscare-canvas{width:100%;height:100%}
+/* Pause overlay */
+#pause-overlay{position:fixed;inset:0;z-index:300;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,0.7);cursor:pointer}
+#pause-overlay.active{display:flex}
+#pause-overlay p{color:#666;font-size:1rem;letter-spacing:0.2em}
 
-/* ===== DANGER OVERLAY ===== */
-#danger-overlay{position:fixed;inset:0;pointer-events:none;z-index:90;opacity:0;transition:opacity 0.5s;background:radial-gradient(ellipse at center,transparent 30%,rgba(120,0,0,0.4) 100%);box-shadow:inset 0 0 100px rgba(120,0,0,0.3)}
-#danger-overlay.active{opacity:1}
-
-/* ===== TITLE SCREEN ===== */
-#title-screen{position:fixed;inset:0;z-index:1000;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#050202;cursor:default}
-#title-screen::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 50% 60%,rgba(100,10,0,0.08),transparent 70%);animation:titlePulse 4s ease-in-out infinite}
-@keyframes titlePulse{0%,100%{opacity:0.5}50%{opacity:1}}
-#title-text{font-family:'Creepster',cursive;font-size:clamp(40px,8vw,80px);color:var(--accent);text-shadow:0 0 40px rgba(204,34,0,0.4),0 0 80px rgba(204,34,0,0.2);letter-spacing:4px;position:relative;z-index:1;animation:titleGlitch 8s infinite}
-@keyframes titleGlitch{0%,92%,100%{transform:translate(0);filter:none}93%{transform:translate(-3px,1px);filter:hue-rotate(90deg)}94%{transform:translate(2px,-1px);filter:none}95%{transform:translate(-1px,2px);filter:hue-rotate(-60deg)}96%{transform:translate(0)}}
-#title-sub{font-size:clamp(14px,2.5vw,20px);color:#5a3030;margin-top:8px;letter-spacing:6px;text-transform:uppercase;position:relative;z-index:1}
-#title-start{margin-top:50px;padding:14px 50px;font-family:'Share Tech Mono',monospace;font-size:16px;background:transparent;border:1px solid var(--accent);color:var(--accent2);cursor:pointer;letter-spacing:3px;transition:all 0.3s;position:relative;z-index:1}
-#title-start:hover{background:rgba(204,34,0,0.15);box-shadow:0 0 30px rgba(204,34,0,0.2);transform:scale(1.02)}
-#title-controls{margin-top:30px;font-size:11px;color:#3a2020;line-height:2;text-align:center;position:relative;z-index:1}
-#title-controls span{color:#5a3535}
-
-/* ===== GAME OVER ===== */
-#game-over{position:fixed;inset:0;z-index:600;display:none;flex-direction:column;align-items:center;justify-content:center;background:#000}
-#game-over.show{display:flex}
-#game-over h2{font-family:'Creepster',cursive;font-size:48px;color:var(--accent);letter-spacing:4px}
-#game-over p{margin-top:12px;color:#5a3030;font-size:13px}
-#game-over button{margin-top:30px;padding:12px 40px;font-family:'Share Tech Mono',monospace;font-size:14px;background:transparent;border:1px solid #3a1515;color:var(--fg);cursor:pointer;letter-spacing:2px;transition:all 0.3s}
-#game-over button:hover{border-color:var(--accent);color:var(--accent2)}
-
-/* ===== CHAPTER END ===== */
-#chapter-end{position:fixed;inset:0;z-index:550;display:none;flex-direction:column;align-items:center;justify-content:center;background:#000;cursor:default}
-#chapter-end.show{display:flex;animation:fadeIn 2s}
-@keyframes fadeIn{from{opacity:0}to{opacity:1}}
-#chapter-end h2{font-family:'Creepster',cursive;font-size:36px;color:var(--accent);letter-spacing:4px}
-#chapter-end p{margin-top:20px;color:#4a2a2a;font-size:14px;max-width:500px;text-align:center;line-height:1.8}
-
-/* ===== TOAST ===== */
-#toast{position:fixed;top:60px;left:50%;transform:translateX(-50%);z-index:300;font-size:12px;color:var(--accent2);background:var(--card);border:1px solid var(--border);padding:8px 20px;border-radius:2px;opacity:0;transition:opacity 0.3s;pointer-events:none}
-#toast.show{opacity:1}
-
-/* ===== HINT ===== */
-#hint{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:11px;color:rgba(255,255,255,0.3);pointer-events:none;opacity:0;transition:opacity 1s;text-align:center;line-height:1.8}
-#hint.show{opacity:1}
-
-/* ===== AREA LABEL ===== */
-#area-label{position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:100;font-family:'Creepster',cursive;font-size:18px;color:var(--accent);opacity:0;transition:opacity 1s;pointer-events:none;text-shadow:0 0 20px rgba(204,34,0,0.4);letter-spacing:3px}
-#area-label.show{opacity:1}
+@media(prefers-reduced-motion:reduce){
+  *{animation-duration:0s!important;transition-duration:0s!important}
+}
 </style>
 </head>
 <body>
 
+<!-- Loading -->
+<div id="loading"><div class="spinner"></div><p>ENTERING THE FUN HOUSE</p></div>
+
 <!-- Title Screen -->
 <div id="title-screen">
-  <div id="title-text">THE FUN HOUSE</div>
-  <div id="title-sub">Chapter 1</div>
-  <button id="title-start">ENTER</button>
-  <div id="title-controls">
-    <span>WASD</span> Move &nbsp; <span>MOUSE</span> Look &nbsp; <span>SHIFT</span> Sprint<br>
-    <span>CTRL</span> Crouch &nbsp; <span>F</span> Flashlight &nbsp; <span>E</span> Interact<br>
-    <span>1-5</span> Inventory &nbsp; <span>ESC</span> Release Mouse
+  <h1>THE FUN HOUSE</h1>
+  <div class="subtitle">Chapter 1 &mdash; Awakening</div>
+  <button class="play-btn" id="play-btn">ENTER</button>
+  <div class="controls-hint">
+    WASD &mdash; Move &nbsp;|&nbsp; MOUSE &mdash; Look &nbsp;|&nbsp; SHIFT &mdash; Sprint &nbsp;|&nbsp; CTRL &mdash; Crouch<br>
+    F &mdash; Flashlight &nbsp;|&nbsp; E &mdash; Interact &nbsp;|&nbsp; 1-5 &mdash; Inventory Slots &nbsp;|&nbsp; ESC &mdash; Pause
   </div>
 </div>
 
-<!-- Game Over -->
-<div id="game-over">
-  <h2>YOU DIDN'T ESCAPE</h2>
-  <p>It was always watching.</p>
-  <button onclick="location.reload()">TRY AGAIN</button>
+<!-- VHS Overlay -->
+<div id="vhs-overlay">
+  <div class="vhs-noise"></div>
+  <div class="vhs-line"></div>
+  <div class="vhs-bar"></div>
 </div>
 
-<!-- Chapter End -->
-<div id="chapter-end">
-  <h2>CHAPTER 1 COMPLETE</h2>
-  <p>You found the secret room beneath the fun house. The truth is worse than you imagined. They never left. They're still here... waiting. The door ahead leads deeper. Chapter 2 will reveal what really happened on that night.</p>
-</div>
-
-<!-- Jumpscare -->
-<div id="jumpscare"><canvas id="jumpscare-canvas"></canvas></div>
-
-<!-- Note UI -->
-<div id="note-ui">
-  <div id="note-content">
-    <div id="note-title"></div>
-    <div id="note-text"></div>
-    <div id="note-close"><i class="fas fa-times"></i> Close [ESC]</div>
-  </div>
-</div>
-
-<!-- Code Puzzle UI -->
-<div id="code-ui">
-  <div id="code-panel">
-    <h3>ACCESS PANEL</h3>
-    <div id="code-display">
-      <div class="code-digit" id="cd0">_</div>
-      <div class="code-digit" id="cd1">_</div>
-      <div class="code-digit" id="cd2">_</div>
-      <div class="code-digit" id="cd3">_</div>
-    </div>
-    <div id="code-buttons"></div>
-    <button id="code-submit">ENTER</button>
-    <div id="code-error"></div>
-    <div id="code-close">Press ESC to close</div>
-  </div>
-</div>
-
-<!-- Danger Overlay -->
-<div id="danger-overlay"></div>
-
-<!-- VHS -->
-<div id="vhs-overlay"></div>
-<canvas id="vhs-noise" width="320" height="180"></canvas>
+<!-- Danger Vignette -->
+<div id="danger-vignette"></div>
 
 <!-- HUD -->
 <div id="hud">
   <div id="crosshair"></div>
-  <div id="battery-bar"><div id="battery-fill"></div></div>
-  <div id="flashlight-icon"><i class="fas fa-flashlight" style="font-size:12px"></i> F</div>
-  <div id="stamina-bar"><div id="stamina-fill"></div></div>
-  <div id="interact-prompt">[E] Interact</div>
-  <div id="sanity-container">
-    <div id="sanity-label">SANITY</div>
-    <div id="sanity-bar"><div id="sanity-fill"></div></div>
+  <div id="sanity-bar"><i class="fas fa-brain"></i><div id="sanity-track"><div id="sanity-fill" style="width:100%"></div></div></div>
+  <div id="battery-bar"><i class="fas fa-battery-full"></i><div id="battery-track"><div id="battery-fill" style="width:100%"></div></div></div>
+  <div id="stamina-bar"><i class="fas fa-running"></i><div id="stamina-track"><div id="stamina-fill" style="width:100%"></div></div></div>
+  <div id="interact-prompt">Press E</div>
+  <div id="area-name"></div>
+  <div id="inventory-bar">
+    <div class="inv-slot" data-slot="0"><span class="slot-num">1</span></div>
+    <div class="inv-slot" data-slot="1"><span class="slot-num">2</span></div>
+    <div class="inv-slot" data-slot="2"><span class="slot-num">3</span></div>
+    <div class="inv-slot" data-slot="3"><span class="slot-num">4</span></div>
+    <div class="inv-slot" data-slot="4"><span class="slot-num">5</span></div>
   </div>
-  <div id="inventory-bar"></div>
-  <div id="hint"></div>
 </div>
 
-<!-- Area Label -->
-<div id="area-label"></div>
+<!-- Note Modal -->
+<div id="note-modal"><div id="note-content"><span class="close-note">ESC to close</span><h3 id="note-title"></h3><p id="note-body"></p></div></div>
 
-<!-- Toast -->
-<div id="toast"></div>
+<!-- Keypad Modal -->
+<div id="keypad-modal">
+  <div id="keypad-box">
+    <h3>SECURITY LOCK</h3>
+    <div id="keypad-display">_ _ _ _</div>
+    <div id="keypad-grid">
+      <button class="keypad-btn" data-val="1">1</button>
+      <button class="keypad-btn" data-val="2">2</button>
+      <button class="keypad-btn" data-val="3">3</button>
+      <button class="keypad-btn" data-val="4">4</button>
+      <button class="keypad-btn" data-val="5">5</button>
+      <button class="keypad-btn" data-val="6">6</button>
+      <button class="keypad-btn" data-val="7">7</button>
+      <button class="keypad-btn" data-val="8">8</button>
+      <button class="keypad-btn" data-val="9">9</button>
+      <button class="keypad-btn clear" data-val="C">CLR</button>
+      <button class="keypad-btn" data-val="0">0</button>
+      <button class="keypad-btn enter" data-val="E">ENT</button>
+    </div>
+    <div id="keypad-feedback"></div>
+  </div>
+</div>
+
+<!-- Jumpscare -->
+<div id="jumpscare"><canvas id="scare-canvas"></canvas></div>
+
+<!-- Pause -->
+<div id="pause-overlay"><p>CLICK TO RESUME</p></div>
 
 <script type="importmap">
 {
@@ -227,1998 +204,2166 @@ canvas{display:block}
 
 <script type="module">
 import * as THREE from 'three';
-import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
 
-// ============================================================
-// CONSTANTS & CONFIG
-// ============================================================
-const WALL_H = 3.5;
-const EYE_H = 1.6;
-const CROUCH_H = 0.9;
-const MOVE_SPD = 3.2;
-const SPRINT_SPD = 5.5;
-const CROUCH_SPD = 1.5;
-const BOB_SPD = 10;
-const BOB_AMT = 0.04;
-const BREATH_AMT = 0.06;
+// ============================================
+// 常量与配置
+// ============================================
+const PLAYER_HEIGHT = 1.7;
+const CROUCH_HEIGHT = 0.9;
+const EYE_OFFSET = 0.15;
+const MOVE_SPEED = 3.2;
+const SPRINT_SPEED = 5.5;
+const CROUCH_SPEED = 1.8;
+const MOUSE_SENS = 0.002;
+const BOB_SPEED = 10;
+const BOB_AMOUNT = 0.04;
+const BATTERY_DRAIN = 1.8; // 每秒消耗百分比
+const INTERACT_DIST = 2.5;
 const GRAVITY = 20;
-const PLAYER_R = 0.35;
-const BATT_DRAIN = 0.4; // per second
-const BATT_MAX = 100;
-const INTERACT_DIST = 2.8;
-const eps = 0.001;
+const CELL = 4;
 
-// ============================================================
-// GAME STATE
-// ============================================================
-const S = {
-  started: false, paused: false, over: false, chapterEnd: false,
-  noteOpen: false, codeOpen: false,
-  move: { f:0, b:0, l:0, r:0 },
-  sprint: false, crouch: false,
-  flashOn: true, battery: BATT_MAX,
-  stamina: 100, sanity: 100,
-  inv: [null,null,null,null,null], selSlot: 0,
-  code: '', codeTarget: '', codeCb: null,
-  area: 'ENTRANCE',
-  levers: [false,false,false],
-  blueDoorOpen: false, redDoorOpen: false,
-  secretDoorOpen: false, hasFlashlight: false,
-  enemyActive: false, enemySpeed: 1.5,
-  time: 0, jumpscareTime: -1,
-  notesCollected: new Set()
-};
+// ============================================
+// 纹理生成器 — 全程程序化 PBR 纹理
+// ============================================
+class TextureGen {
+  static canvas(size) {
+    const c = document.createElement('canvas');
+    c.width = c.height = size;
+    return { canvas: c, ctx: c.getContext('2d') };
+  }
 
-// ============================================================
-// THREE.JS SETUP
-// ============================================================
-const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference:'high-performance' });
-renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 0.6;
-renderer.outputColorSpace = THREE.SRGBColorSpace;
-document.body.prepend(renderer.domElement);
-
-const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x020101);
-scene.fog = new THREE.FogExp2(0x020101, 0.06);
-
-const camera = new THREE.PerspectiveCamera(70, window.innerWidth/window.innerHeight, 0.1, 100);
-camera.position.set(0, EYE_H, 0);
-
-const controls = new PointerLockControls(camera, document.body);
-
-// Ambient light (very dim)
-const ambient = new THREE.AmbientLight(0x110808, 0.3);
-scene.add(ambient);
-
-// ============================================================
-// AUDIO SYSTEM
-// ============================================================
-let audioCtx = null;
-function initAudio() {
-  if (audioCtx) return;
-  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-}
-
-function playTone(freq, dur, vol=0.1, type='sine') {
-  if (!audioCtx) return;
-  const o = audioCtx.createOscillator();
-  const g = audioCtx.createGain();
-  o.type = type;
-  o.frequency.value = freq;
-  g.gain.setValueAtTime(vol, audioCtx.currentTime);
-  g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
-  o.connect(g); g.connect(audioCtx.destination);
-  o.start(); o.stop(audioCtx.currentTime + dur);
-}
-
-function playNoise(dur, vol=0.05) {
-  if (!audioCtx) return;
-  const sz = audioCtx.sampleRate * dur;
-  const buf = audioCtx.createBuffer(1, sz, audioCtx.sampleRate);
-  const d = buf.getChannelData(0);
-  for (let i=0;i<sz;i++) d[i] = (Math.random()*2-1);
-  const s = audioCtx.createBufferSource();
-  s.buffer = buf;
-  const g = audioCtx.createGain();
-  g.gain.setValueAtTime(vol, audioCtx.currentTime);
-  g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
-  const f = audioCtx.createBiquadFilter();
-  f.type = 'lowpass'; f.frequency.value = 800;
-  s.connect(f); f.connect(g); g.connect(audioCtx.destination);
-  s.start(); s.stop(audioCtx.currentTime + dur);
-}
-
-function playDoorCreak() {
-  if (!audioCtx) return;
-  const o = audioCtx.createOscillator();
-  const g = audioCtx.createGain();
-  o.type = 'sawtooth';
-  o.frequency.setValueAtTime(80, audioCtx.currentTime);
-  o.frequency.linearRampToValueAtTime(200, audioCtx.currentTime+0.5);
-  o.frequency.linearRampToValueAtTime(60, audioCtx.currentTime+1.2);
-  g.gain.setValueAtTime(0.06, audioCtx.currentTime);
-  g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime+1.2);
-  const f = audioCtx.createBiquadFilter();
-  f.type='bandpass'; f.frequency.value=150; f.Q.value=5;
-  o.connect(f); f.connect(g); g.connect(audioCtx.destination);
-  o.start(); o.stop(audioCtx.currentTime+1.2);
-}
-
-function playPickup() {
-  playTone(600, 0.1, 0.08);
-  setTimeout(()=>playTone(900, 0.15, 0.06), 80);
-}
-
-function playError() {
-  playTone(150, 0.3, 0.1, 'square');
-  setTimeout(()=>playTone(100, 0.4, 0.08, 'square'), 150);
-}
-
-function playSuccess() {
-  playTone(440, 0.15, 0.08);
-  setTimeout(()=>playTone(660, 0.15, 0.08), 120);
-  setTimeout(()=>playTone(880, 0.3, 0.06), 240);
-}
-
-function playWhisper() {
-  playNoise(1.5, 0.03);
-  playTone(200 + Math.random()*100, 1.5, 0.015, 'sine');
-}
-
-function playHeartbeat() {
-  playTone(50, 0.15, 0.12, 'sine');
-  setTimeout(()=>playTone(40, 0.2, 0.08, 'sine'), 200);
-}
-
-function playJumpscareSound() {
-  playNoise(0.8, 0.5);
-  playTone(80, 0.6, 0.4, 'sawtooth');
-  playTone(200, 0.4, 0.3, 'square');
-}
-
-// Ambient drone loop
-let droneNode = null;
-function startDrone() {
-  if (!audioCtx || droneNode) return;
-  const o1 = audioCtx.createOscillator();
-  const o2 = audioCtx.createOscillator();
-  const g = audioCtx.createGain();
-  const f = audioCtx.createBiquadFilter();
-  o1.type='sine'; o1.frequency.value=42;
-  o2.type='sine'; o2.frequency.value=42.5;
-  f.type='lowpass'; f.frequency.value=200;
-  g.gain.value=0.04;
-  o1.connect(f); o2.connect(f); f.connect(g); g.connect(audioCtx.destination);
-  o1.start(); o2.start();
-  droneNode = { o1, o2, g, f };
-}
-
-function setDroneIntensity(v) {
-  if (droneNode) droneNode.g.gain.linearRampToValueAtTime(Math.min(0.15,v), audioCtx.currentTime+0.5);
-}
-
-// ============================================================
-// PROCEDURAL TEXTURE GENERATOR
-// ============================================================
-function makeTex(w, h, fn) {
-  const c = document.createElement('canvas');
-  c.width = w; c.height = h;
-  const ctx = c.getContext('2d');
-  fn(ctx, w, h);
-  const t = new THREE.CanvasTexture(c);
-  t.wrapS = t.wrapT = THREE.RepeatWrapping;
-  t.colorSpace = THREE.SRGBColorSpace;
-  return t;
-}
-
-function hash(x, y) { let n = Math.sin(x*127.1+y*311.7)*43758.5453; return n-Math.floor(n); }
-function noise2(x,y) {
-  const ix=Math.floor(x),iy=Math.floor(y);
-  const fx=x-ix,fy=y-iy;
-  const sx=fx*fx*(3-2*fx),sy=fy*fy*(3-2*fy);
-  return (hash(ix,iy)*(1-sx)+hash(ix+1,iy)*sx)*(1-sy) + (hash(ix,iy+1)*(1-sx)+hash(ix+1,iy+1)*sx)*sy;
-}
-function fbm(x,y,o=4) { let v=0,a=0.5,f=1; for(let i=0;i<o;i++){v+=a*noise2(x*f,y*f);a*=0.5;f*=2;} return v; }
-
-// --- Wall: Peeling paint with damage ---
-function genWallColor() {
-  return makeTex(512,512,(ctx,w,h)=>{
-    ctx.fillStyle='#3a2a1a'; ctx.fillRect(0,0,w,h);
-    // Paint layer
-    const imgData = ctx.getImageData(0,0,w,h);
-    for(let y=0;y<h;y++) for(let x=0;x<w;x++){
-      const n = fbm(x*0.008, y*0.008, 5);
-      const peel = fbm(x*0.02+3, y*0.015, 3);
-      let r,g,b;
-      if(peel > 0.55) { // bare wall
-        r=58+Math.random()*10; g=42+Math.random()*8; b=28+Math.random()*6;
-      } else { // paint
-        const hue = n*0.1;
-        r=80+n*40; g=60+n*20; b=45+n*15;
-        if(fbm(x*0.05, y*0.05)>0.6) { r+=15; g+=8; } // lighter patches
-      }
-      // Water damage from top
-      const wd = fbm(x*0.005, y*0.003+10)*Math.max(0,1-y/h*2);
-      if(wd>0.5) { r-=10; g-=5; b+=5; }
-      // Dirt in corners
-      const cx=Math.min(x,w-x)/w, cy=Math.min(y,h-y)/h;
-      const dirt = Math.max(0, 1-cx*4)*0.3 + Math.max(0,1-cy*4)*0.3;
-      r-=dirt*20; g-=dirt*15; b-=dirt*10;
-      const i=(y*w+x)*4;
-      imgData.data[i]=Math.max(0,r); imgData.data[i+1]=Math.max(0,g); imgData.data[i+2]=Math.max(0,b); imgData.data[i+3]=255;
+  // 墙壁纹理：剥落油漆 + 水渍 + 划痕
+  static wall(opts = {}) {
+    const S = 512, { canvas, ctx } = this.canvas(S);
+    const base = opts.color || '#3a2820';
+    // 基底色
+    ctx.fillStyle = base;
+    ctx.fillRect(0, 0, S, S);
+    // 噪声层
+    for (let i = 0; i < 8000; i++) {
+      const x = Math.random() * S, y = Math.random() * S;
+      const b = Math.random() * 30 - 15;
+      ctx.fillStyle = `rgba(${128 + b},${100 + b},${80 + b},0.15)`;
+      ctx.fillRect(x, y, Math.random() * 3 + 1, Math.random() * 3 + 1);
     }
-    ctx.putImageData(imgData,0,0);
-    // Claw marks
-    ctx.strokeStyle='rgba(20,10,5,0.6)'; ctx.lineWidth=2;
-    for(let i=0;i<3;i++){
-      const sx=200+i*30+Math.random()*20, sy=100+Math.random()*300;
-      ctx.beginPath(); ctx.moveTo(sx,sy);
-      ctx.quadraticCurveTo(sx+40+Math.random()*20,sy+80,sx+30+Math.random()*30,sy+160);
+    // 水渍（从顶部流下）
+    for (let s = 0; s < 3; s++) {
+      const sx = Math.random() * S;
+      const grad = ctx.createLinearGradient(sx, 0, sx + (Math.random() - 0.5) * 40, S * (0.5 + Math.random() * 0.4));
+      grad.addColorStop(0, 'rgba(20,15,10,0.3)');
+      grad.addColorStop(0.5, 'rgba(30,25,18,0.2)');
+      grad.addColorStop(1, 'rgba(20,15,10,0)');
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.ellipse(sx, S * 0.3, 15 + Math.random() * 20, S * 0.4, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    // 剥落油漆斑块
+    for (let p = 0; p < 6; p++) {
+      const px = Math.random() * S, py = Math.random() * S, pr = 20 + Math.random() * 40;
+      ctx.save();
+      ctx.beginPath();
+      for (let a = 0; a < Math.PI * 2; a += 0.3) {
+        const r = pr + Math.random() * pr * 0.4;
+        ctx.lineTo(px + Math.cos(a) * r, py + Math.sin(a) * r);
+      }
+      ctx.closePath();
+      ctx.clip();
+      ctx.fillStyle = opts.underColor || '#2a1a14';
+      ctx.fillRect(px - pr - 10, py - pr - 10, pr * 2 + 20, pr * 2 + 20);
+      ctx.restore();
+    }
+    // 划痕
+    ctx.strokeStyle = 'rgba(60,45,35,0.4)';
+    for (let s = 0; s < 8; s++) {
+      ctx.lineWidth = Math.random() * 1.5 + 0.5;
+      ctx.beginPath();
+      ctx.moveTo(Math.random() * S, Math.random() * S);
+      ctx.lineTo(Math.random() * S, Math.random() * S);
       ctx.stroke();
     }
-    // Faded clown design
-    ctx.globalAlpha=0.06;
-    ctx.fillStyle='#ff4444';
-    ctx.beginPath(); ctx.arc(256,256,60,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='#ffcc00';
-    ctx.beginPath(); ctx.arc(236,240,8,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(276,240,8,0,Math.PI*2); ctx.fill();
-    ctx.strokeStyle='#ff2222'; ctx.lineWidth=3;
-    ctx.beginPath(); ctx.arc(256,270,30,0.1*Math.PI,0.9*Math.PI); ctx.stroke();
-    ctx.globalAlpha=1;
-  });
-}
+    // 暗角（AO 模拟）
+    const vg = ctx.createRadialGradient(S / 2, S / 2, S * 0.2, S / 2, S / 2, S * 0.7);
+    vg.addColorStop(0, 'rgba(0,0,0,0)');
+    vg.addColorStop(1, 'rgba(0,0,0,0.25)');
+    ctx.fillStyle = vg;
+    ctx.fillRect(0, 0, S, S);
 
-function genWallNormal() {
-  return makeTex(512,512,(ctx,w,h)=>{
-    const imgData=ctx.createImageData(w,h);
-    for(let y=0;y<h;y++) for(let x=0;x<w;x++){
-      const n=fbm(x*0.015,y*0.015,4);
-      const peel=fbm(x*0.03+3,y*0.02,3);
-      const depth = peel>0.55 ? 0.7 : 0.3+n*0.3;
-      const i=(y*w+x)*4;
-      imgData.data[i]=128+n*20-10; imgData.data[i+1]=128+n*15-10; imgData.data[i+2]=depth*255; imgData.data[i+3]=255;
+    const colorMap = new THREE.CanvasTexture(canvas);
+    colorMap.wrapS = colorMap.wrapT = THREE.RepeatWrapping;
+
+    // 法线贴图
+    const { canvas: nc, ctx: nctx } = this.canvas(S);
+    nctx.fillStyle = '#8080ff';
+    nctx.fillRect(0, 0, S, S);
+    for (let i = 0; i < 3000; i++) {
+      const x = Math.random() * S, y = Math.random() * S;
+      const dx = (Math.random() - 0.5) * 30, dy = (Math.random() - 0.5) * 30;
+      const r = 128 + dx | 0, g = 128 + dy | 0;
+      nctx.fillStyle = `rgb(${r},${g},128)`;
+      nctx.fillRect(x, y, Math.random() * 4 + 1, Math.random() * 4 + 1);
     }
-    ctx.putImageData(imgData,0,0);
-  });
-}
-
-function genWallRough() {
-  return makeTex(256,256,(ctx,w,h)=>{
-    const imgData=ctx.createImageData(w,h);
-    for(let y=0;y<h;y++) for(let x=0;x<w;x++){
-      const n=fbm(x*0.02,y*0.02,3);
-      const rough = 0.6+n*0.4;
-      const i=(y*w+x)*4;
-      const v=Math.floor(rough*255);
-      imgData.data[i]=v; imgData.data[i+1]=v; imgData.data[i+2]=v; imgData.data[i+3]=255;
+    // 剥落区域的法线偏移
+    for (let p = 0; p < 6; p++) {
+      const px = Math.random() * S, py = Math.random() * S, pr = 20 + Math.random() * 30;
+      nctx.fillStyle = 'rgba(90,100,160,0.3)';
+      nctx.beginPath();
+      nctx.arc(px, py, pr, 0, Math.PI * 2);
+      nctx.fill();
     }
-    ctx.putImageData(imgData,0,0);
-  });
-}
+    const normalMap = new THREE.CanvasTexture(nc);
+    normalMap.wrapS = normalMap.wrapT = THREE.RepeatWrapping;
 
-function genWallAO() {
-  return makeTex(256,256,(ctx,w,h)=>{
-    const imgData=ctx.createImageData(w,h);
-    for(let y=0;y<h;y++) for(let x=0;x<w;x++){
-      const cx=Math.min(x,w-x)/w, cy=Math.min(y,h-y)/h;
-      const ao = Math.min(1, cx*3)*Math.min(1, cy*3);
-      const crack = fbm(x*0.03,y*0.03)>0.7 ? 0.7 : 1;
-      const v=Math.floor(ao*crack*255);
-      const i=(y*w+x)*4;
-      imgData.data[i]=v; imgData.data[i+1]=v; imgData.data[i+2]=v; imgData.data[i+3]=255;
+    // 粗糙度贴图
+    const { canvas: rc, ctx: rctx } = this.canvas(S);
+    rctx.fillStyle = '#888888';
+    rctx.fillRect(0, 0, S, S);
+    for (let i = 0; i < 4000; i++) {
+      const v = 100 + Math.random() * 80;
+      rctx.fillStyle = `rgb(${v | 0},${v | 0},${v | 0})`;
+      rctx.fillRect(Math.random() * S, Math.random() * S, Math.random() * 3 + 1, Math.random() * 3 + 1);
     }
-    ctx.putImageData(imgData,0,0);
-  });
-}
+    // 水渍区域更光滑
+    for (let s = 0; s < 2; s++) {
+      rctx.fillStyle = 'rgba(160,160,160,0.3)';
+      rctx.beginPath();
+      rctx.ellipse(Math.random() * S, S * 0.3, 30, S * 0.3, 0, 0, Math.PI * 2);
+      rctx.fill();
+    }
+    const roughnessMap = new THREE.CanvasTexture(rc);
+    roughnessMap.wrapS = roughnessMap.wrapT = THREE.RepeatWrapping;
 
-// --- Floor: Worn wood planks ---
-function genFloorColor() {
-  return makeTex(512,512,(ctx,w,h)=>{
-    ctx.fillStyle='#2a1e10'; ctx.fillRect(0,0,w,h);
-    const plankH = 64;
-    for(let py=0;py<h;py+=plankH){
-      for(let x=0;x<w;x++){
-        const grain = noise2(x*0.01, py*0.05)*30 + noise2(x*0.005, py*0.02)*20;
-        const wear = fbm(x*0.008, py*0.008)*20;
-        const gap = (py%plankH<2) ? -30 : 0;
-        const r=42+grain+wear+gap+Math.random()*5;
-        const g=30+grain*0.7+wear*0.5+gap+Math.random()*3;
-        const b=16+grain*0.4+gap*0.5+Math.random()*2;
-        for(let dy=0;dy<plankH&&py+dy<h;dy++){
-          const i=((py+dy)*w+x)*4;
-          const imgData=ctx.getImageData(0,0,w,h).data;
-          // Too slow per pixel, use fillRect strips instead
+    return { colorMap, normalMap, roughnessMap };
+  }
+
+  // 地板纹理：旧木板
+  static floor() {
+    const S = 512, { canvas, ctx } = this.canvas(S);
+    const plankW = S / 6;
+    for (let p = 0; p < 6; p++) {
+      const x = p * plankW;
+      const base = 35 + Math.random() * 15;
+      ctx.fillStyle = `rgb(${base + 20},${base + 10},${base})`;
+      ctx.fillRect(x, 0, plankW - 1, S);
+      // 木纹
+      for (let l = 0; l < 20; l++) {
+        const ly = Math.random() * S;
+        ctx.strokeStyle = `rgba(${base + 10},${base},${base - 5},0.3)`;
+        ctx.lineWidth = Math.random() * 1.5 + 0.3;
+        ctx.beginPath();
+        ctx.moveTo(x, ly);
+        let cx = x;
+        while (cx < x + plankW) {
+          cx += 10;
+          ctx.lineTo(cx, ly + (Math.random() - 0.5) * 4);
         }
+        ctx.stroke();
+      }
+      // 缝隙
+      ctx.fillStyle = 'rgba(10,8,5,0.8)';
+      ctx.fillRect(x + plankW - 1, 0, 2, S);
+      // 污垢
+      for (let d = 0; d < 200; d++) {
+        const v = Math.random() * 20;
+        ctx.fillStyle = `rgba(${v},${v},${v},0.15)`;
+        ctx.fillRect(x + Math.random() * plankW, Math.random() * S, Math.random() * 4 + 1, Math.random() * 4 + 1);
       }
     }
-    // Faster approach
-    const imgData=ctx.getImageData(0,0,w,h);
-    for(let y=0;y<h;y++) for(let x=0;x<w;x++){
-      const plank = Math.floor(y/plankH);
-      const localY = y%plankH;
-      const grain = noise2(x*0.012, plank*3.7)*25 + noise2(x*0.003, plank*1.2)*15;
-      const wear = fbm(x*0.006+plank*5, y*0.006)*20;
-      const gap = localY<2 ? -35 : 0;
-      const grime = fbm(x*0.004+20, y*0.004+20)*0.3;
-      const r=42+grain+wear+gap;
-      const g=30+grain*0.6+wear*0.4+gap;
-      const b=16+grain*0.3+gap*0.5;
-      const i=(y*w+x)*4;
-      imgData.data[i]=Math.max(0,Math.min(255,r*(1-grime)));
-      imgData.data[i+1]=Math.max(0,Math.min(255,g*(1-grime)));
-      imgData.data[i+2]=Math.max(0,Math.min(255,b*(1-grime)));
-      imgData.data[i+3]=255;
-    }
-    ctx.putImageData(imgData,0,0);
-  });
-}
+    // 暗角
+    const vg = ctx.createRadialGradient(S / 2, S / 2, S * 0.15, S / 2, S / 2, S * 0.7);
+    vg.addColorStop(0, 'rgba(0,0,0,0)');
+    vg.addColorStop(1, 'rgba(0,0,0,0.3)');
+    ctx.fillStyle = vg;
+    ctx.fillRect(0, 0, S, S);
 
-function genFloorNormal() {
-  return makeTex(512,512,(ctx,w,h)=>{
-    const imgData=ctx.createImageData(w,h);
-    const plankH=64;
-    for(let y=0;y<h;y++) for(let x=0;x<w;x++){
-      const plank=Math.floor(y/plankH);
-      const localY=y%plankH;
-      const gap=localY<2?1:0;
-      const grain=noise2(x*0.015,plank*3.7)*0.3;
-      const i=(y*w+x)*4;
-      imgData.data[i]=128+grain*30; imgData.data[i+1]=128; imgData.data[i+2]=(gap?200:130)+grain*20; imgData.data[i+3]=255;
-    }
-    ctx.putImageData(imgData,0,0);
-  });
-}
+    const colorMap = new THREE.CanvasTexture(canvas);
+    colorMap.wrapS = colorMap.wrapT = THREE.RepeatWrapping;
 
-function genFloorRough() {
-  return makeTex(256,256,(ctx,w,h)=>{
-    const imgData=ctx.createImageData(w,h);
-    const plankH=32;
-    for(let y=0;y<h;y++) for(let x=0;x<w;x++){
-      const localY=y%plankH;
-      const worn = localY<4 ? 0.3 : 0.5+fbm(x*0.02,y*0.02)*0.5;
-      const v=Math.floor(worn*255);
-      const i=(y*w+x)*4;
-      imgData.data[i]=v;imgData.data[i+1]=v;imgData.data[i+2]=v;imgData.data[i+3]=255;
-    }
-    ctx.putImageData(imgData,0,0);
-  });
-}
-
-function genFloorAO() {
-  return makeTex(256,256,(ctx,w,h)=>{
-    const imgData=ctx.createImageData(w,h);
-    for(let y=0;y<h;y++) for(let x=0;x<w;x++){
-      const plankH=32;
-      const localY=y%plankH;
-      const gap=localY<2?0.5:1;
-      const v=Math.floor(gap*255);
-      const i=(y*w+x)*4;
-      imgData.data[i]=v;imgData.data[i+1]=v;imgData.data[i+2]=v;imgData.data[i+3]=255;
-    }
-    ctx.putImageData(imgData,0,0);
-  });
-}
-
-// --- Ceiling ---
-function genCeilingColor() {
-  return makeTex(256,256,(ctx,w,h)=>{
-    ctx.fillStyle='#1a1512'; ctx.fillRect(0,0,w,h);
-    const imgData=ctx.getImageData(0,0,w,h);
-    for(let y=0;y<h;y++) for(let x=0;x<w;x++){
-      const n=fbm(x*0.01,y*0.01,3)*15;
-      const stain=fbm(x*0.005+5,y*0.005+5)>0.65?-8:0;
-      const i=(y*w+x)*4;
-      imgData.data[i]=Math.max(0,26+n+stain);
-      imgData.data[i+1]=Math.max(0,21+n+stain);
-      imgData.data[i+2]=Math.max(0,18+n+stain);
-      imgData.data[i+3]=255;
-    }
-    ctx.putImageData(imgData,0,0);
-  });
-}
-
-// --- Metal texture ---
-function genMetalColor() {
-  return makeTex(256,256,(ctx,w,h)=>{
-    const imgData=ctx.getImageData(0,0,w,h);
-    for(let y=0;y<h;y++) for(let x=0;x<w;x++){
-      const base=fbm(x*0.01,y*0.01,3);
-      const rust=fbm(x*0.02+10,y*0.02+10)>0.55;
-      let r,g,b;
-      if(rust){ r=80+base*40; g=40+base*15; b=20+base*10; }
-      else { r=50+base*30; g=50+base*28; b=48+base*25; }
-      const oil=fbm(x*0.015+20,y*0.008)>0.7?-10:0;
-      const i=(y*w+x)*4;
-      imgData.data[i]=Math.max(0,r+oil);imgData.data[i+1]=Math.max(0,g+oil);imgData.data[i+2]=Math.max(0,b+oil);imgData.data[i+3]=255;
-    }
-    ctx.putImageData(imgData,0,0);
-  });
-}
-
-// Build material sets
-function buildMat(colorTex, normalTex, roughTex, aoTex, opts={}) {
-  return new THREE.MeshStandardMaterial({
-    map: colorTex,
-    normalMap: normalTex,
-    normalScale: new THREE.Vector2(0.8,0.8),
-    roughnessMap: roughTex,
-    aoMap: aoTex,
-    aoMapIntensity: 0.5,
-    ...opts
-  });
-}
-
-// Generate all textures
-const texWallColor = genWallColor();
-const texWallNormal = genWallNormal();
-const texWallRough = genWallRough();
-const texWallAO = genWallAO();
-const matWall = buildMat(texWallColor, texWallNormal, texWallRough, texWallAO);
-
-const texFloorColor = genFloorColor();
-const texFloorNormal = genFloorNormal();
-const texFloorRough = genFloorRough();
-const texFloorAO = genFloorAO();
-const matFloor = buildMat(texFloorColor, texFloorNormal, texFloorRough, texFloorAO, {roughness:0.7});
-
-const texCeilColor = genCeilingColor();
-const matCeil = new THREE.MeshStandardMaterial({map:texCeilColor, color:0x1a1512, roughness:0.9});
-
-const texMetalColor = genMetalColor();
-const matMetal = new THREE.MeshStandardMaterial({map:texMetalColor, color:0x888888, roughness:0.5, metalness:0.6});
-
-const matMirror = new THREE.MeshStandardMaterial({color:0x88aacc, metalness:0.95, roughness:0.02, envMapIntensity:1});
-const matDark = new THREE.MeshStandardMaterial({color:0x0a0808, roughness:0.9});
-const matRedDoor = new THREE.MeshStandardMaterial({color:0x8b1a1a, roughness:0.6, metalness:0.1});
-const matBlueDoor = new THREE.MeshStandardMaterial({color:0x1a3a6b, roughness:0.6, metalness:0.1});
-const matWood = new THREE.MeshStandardMaterial({color:0x3a2818, roughness:0.8});
-const matNeonRed = new THREE.MeshStandardMaterial({color:0xff2200, emissive:0xff2200, emissiveIntensity:2});
-const matNeonGreen = new THREE.MeshStandardMaterial({color:0x00ff44, emissive:0x00ff44, emissiveIntensity:2});
-const matNeonBlue = new THREE.MeshStandardMaterial({color:0x2244ff, emissive:0x2244ff, emissiveIntensity:2});
-
-// ============================================================
-// COLLISION SYSTEM
-// ============================================================
-const colliders = []; // Array of {min:{x,z}, max:{x,z}}
-
-function addCol(x1,z1,x2,z2) {
-  colliders.push({min:{x:Math.min(x1,x2),z:Math.min(z1,z2)}, max:{x:Math.max(x1,x2),z:Math.max(z1,z2)}});
-}
-
-function checkCol(px, pz) {
-  for(const c of colliders) {
-    if(px+PLAYER_R>c.min.x && px-PLAYER_R<c.max.x && pz+PLAYER_R>c.min.z && pz-PLAYER_R<c.max.z) return true;
-  }
-  return false;
-}
-
-// ============================================================
-// INTERACTABLE SYSTEM
-// ============================================================
-const interactables = []; // {mesh, type, data, id}
-let currentInteract = null;
-
-function addInteract(mesh, type, data, id) {
-  interactables.push({mesh, type, data, id});
-}
-
-function removeInteract(id) {
-  const idx = interactables.findIndex(i=>i.id===id);
-  if(idx>=0) interactables.splice(idx,1);
-}
-
-// ============================================================
-// WORLD BUILDER
-// ============================================================
-const wallMeshes = [];
-const allMeshes = [];
-
-function addWall(x, z, w, d, mat=matWall, addCollider_=true) {
-  const geo = new THREE.BoxGeometry(Math.max(eps,w), WALL_H, Math.max(eps,d));
-  const m = new THREE.Mesh(geo, mat);
-  m.position.set(x, WALL_H/2, z);
-  m.castShadow = true;
-  m.receiveShadow = true;
-  scene.add(m);
-  wallMeshes.push(m);
-  allMeshes.push(m);
-  if(addCollider_) addCol(x-w/2, z-d/2, x+w/2, z+d/2);
-  return m;
-}
-
-function addFloor(x, z, w, d, mat=matFloor) {
-  const geo = new THREE.PlaneGeometry(Math.max(eps,w), Math.max(eps,d));
-  const m = new THREE.Mesh(geo, mat);
-  m.rotation.x = -Math.PI/2;
-  m.position.set(x, 0, z);
-  m.receiveShadow = true;
-  scene.add(m);
-  allMeshes.push(m);
-  return m;
-}
-
-function addCeiling(x, z, w, d, mat=matCeil) {
-  const geo = new THREE.PlaneGeometry(Math.max(eps,w), Math.max(eps,d));
-  const m = new THREE.Mesh(geo, mat);
-  m.rotation.x = Math.PI/2;
-  m.position.set(x, WALL_H, z);
-  scene.add(m);
-  allMeshes.push(m);
-  return m;
-}
-
-function addLight(x, y, z, color, intensity, dist=8, castShadow=false) {
-  const l = new THREE.PointLight(color, intensity, dist);
-  l.position.set(x, y, z);
-  if(castShadow) { l.castShadow=true; l.shadow.mapSize.set(512,512); l.shadow.bias=-0.002; }
-  scene.add(l);
-  return l;
-}
-
-function addFlickerLight(x, y, z, color, intensity, dist, minI=0.1) {
-  const l = addLight(x,y,z,color,intensity,dist,true);
-  l.userData = {baseI:intensity, minI, speed:2+Math.random()*5, phase:Math.random()*10};
-  flickerLights.push(l);
-  return l;
-}
-
-const flickerLights = [];
-const animDoors = [];
-const animLevers = [];
-
-function buildWorld() {
-  // === AREA 1: ENTRANCE (x: -5 to 5, z: -2 to 10) ===
-  // Floor & ceiling
-  addFloor(0, 4, 10, 12);
-  addCeiling(0, 4, 10, 12);
-  // Walls
-  addWall(-5, 4, 0.3, 12);   // left
-  addWall(5, 4, 0.3, 12);    // right
-  addWall(0, -2, 10, 0.3);   // back (entrance wall)
-  addWall(0, 10, 4, 0.3);    // front left portion
-  addWall(3.5, 10, 3, 0.3);  // front right portion (gap for door at x:2-5)
-
-  // Entrance dim light
-  addLight(0, 3.2, 2, 0x331111, 0.5, 8);
-
-  // Flashlight on table
-  const tableGeo = new THREE.BoxGeometry(0.8, 0.6, 0.5);
-  const table = new THREE.Mesh(tableGeo, matWood);
-  table.position.set(-2, 0.3, 2);
-  table.castShadow = true;
-  scene.add(table);
-
-  const flGeo = new THREE.CylinderGeometry(0.04, 0.06, 0.35, 8);
-  const flMesh = new THREE.Mesh(flGeo, matMetal);
-  flMesh.rotation.z = Math.PI/2;
-  flMesh.position.set(-2, 0.78, 2);
-  flMesh.castShadow = true;
-  scene.add(flMesh);
-  addInteract(flMesh, 'flashlight', {}, 'flashlight_pickup');
-
-  // Note on table
-  const noteGeo = new THREE.PlaneGeometry(0.25, 0.35);
-  const noteMat = new THREE.MeshStandardMaterial({color:0xd4c4a0, roughness:0.9, side:THREE.DoubleSide});
-  const noteMesh = new THREE.Mesh(noteGeo, noteMat);
-  noteMesh.rotation.x = -Math.PI/2;
-  noteMesh.position.set(-1.8, 0.61, 2);
-  scene.add(noteMesh);
-  addInteract(noteMesh, 'note', {
-    title: 'WELCOME',
-    text: 'Welcome to The Fun House.\n\nIf you\'re reading this, it\'s already too late.\nThe doors lock from the outside.\n\nFind the keycards. Solve the puzzles.\nDon\'t make noise.\n\nIt listens.'
-  }, 'note_1');
-
-  // Hint text
-  showHint('Look around... find the flashlight.\n[F] to toggle, [E] to interact', 6000);
-
-  // === TRANSITION: ENTRANCE → MAIN HALL ===
-  // Door frame at z=10, x=2 to 5
-  const blueDoorGeo = new THREE.BoxGeometry(2.8, WALL_H-0.2, 0.15);
-  const blueDoor = new THREE.Mesh(blueDoorGeo, matBlueDoor);
-  blueDoor.position.set(3.5, WALL_H/2-0.1, 10);
-  blueDoor.castShadow = true;
-  scene.add(blueDoor);
-  addInteract(blueDoor, 'door', {color:'blue', mesh:blueDoor}, 'blue_door');
-  // Door frame
-  addWall(1.9, 10, 0.2, 0.3, matMetal); // left frame
-  addWall(5.1, 10, 0.2, 0.3, matMetal); // right frame
-
-  // Blue keycard in entrance (on floor)
-  const keyGeo = new THREE.BoxGeometry(0.15, 0.02, 0.1);
-  const blueKeyMat = new THREE.MeshStandardMaterial({color:0x2255cc, emissive:0x112244, emissiveIntensity:0.3, roughness:0.4});
-  const blueKey = new THREE.Mesh(keyGeo, blueKeyMat);
-  blueKey.position.set(3, 0.02, 6);
-  blueKey.rotation.y = 0.5;
-  scene.add(blueKey);
-  addInteract(blueKey, 'keycard', {color:'blue'}, 'blue_keycard');
-
-  // Small light near keycard
-  addFlickerLight(3, 2.8, 6, 0x112244, 0.4, 5, 0.05);
-
-  // === AREA 2: MAIN HALL (x: -8 to 8, z: 10 to 30) ===
-  addFloor(0, 20, 16, 20);
-  addCeiling(0, 20, 16, 20);
-  // Left wall
-  addWall(-8, 20, 0.3, 20);
-  // Right wall
-  addWall(8, 20, 0.3, 20);
-  // Back wall (to mirror maze)
-  addWall(0, 30, 16, 0.3);
-  // Front wall (from entrance) - already have blue door area, fill gaps
-  addWall(-3, 10, 4, 0.3); // left of entrance exit
-  addWall(6.5, 10, 3, 0.3);
-
-  // Main hall flickering lights
-  addFlickerLight(-4, 3, 15, 0x442211, 1.2, 10, 0.1);
-  addFlickerLight(4, 3, 22, 0x331111, 0.8, 8, 0.15);
-  addFlickerLight(0, 3, 27, 0x221100, 0.6, 8, 0.05);
-
-  // Neon "FUN" sign on left wall
-  buildNeonSign(-7.7, 2.5, 18, 'FUN', 0xff2200);
-  // Neon "PLAY" on right wall
-  buildNeonSign(7.7, 2.5, 22, 'PLAY', 0x00ff44, true);
-
-  // Red door (to secret room) on back wall
-  const redDoorGeo = new THREE.BoxGeometry(2.8, WALL_H-0.2, 0.15);
-  const redDoor = new THREE.Mesh(redDoorGeo, matRedDoor);
-  redDoor.position.set(-4, WALL_H/2-0.1, 30);
-  redDoor.castShadow = true;
-  scene.add(redDoor);
-  addInteract(redDoor, 'door', {color:'red', mesh:redDoor}, 'red_door');
-
-  // Door frame for red door
-  addWall(-5.5, 30, 0.2, 0.3, matMetal);
-  addWall(-2.5, 30, 0.2, 0.3, matMetal);
-
-  // Code panel near red door
-  const panelGeo = new THREE.BoxGeometry(0.5, 0.6, 0.1);
-  const panelMat = new THREE.MeshStandardMaterial({color:0x222222, metalness:0.8, roughness:0.3});
-  const panel = new THREE.Mesh(panelGeo, panelMat);
-  panel.position.set(-4, 1.5, 29.8);
-  scene.add(panel);
-  addInteract(panel, 'code', {}, 'code_panel');
-
-  // Generate random 4-digit code for this session
-  S.codeTarget = String(Math.floor(1000+Math.random()*9000));
-
-  // Code hint note
-  const note2Geo = new THREE.PlaneGeometry(0.25, 0.35);
-  const note2 = new THREE.Mesh(note2Geo, noteMat.clone());
-  note2.position.set(3, 1.2, 29.85);
-  note2.rotation.y = Math.PI;
-  scene.add(note2);
-  addInteract(note2, 'note', {
-    title: 'MAINTENANCE LOG',
-    text: `Panel code changed today.\nNew code: ${S.codeTarget}\n\nDon't write it on the wall again.\n- M.`
-  }, 'note_code');
-
-  // Lever puzzle area (right side of main hall)
-  // Three levers in a row
-  for(let i=0;i<3;i++) {
-    const baseGeo = new THREE.BoxGeometry(0.3, 0.8, 0.2);
-    const base = new THREE.Mesh(baseGeo, matMetal);
-    base.position.set(6, 0.4, 14+i*1.5);
-    base.castShadow = true;
-    scene.add(base);
-
-    const handleGeo = new THREE.CylinderGeometry(0.03, 0.03, 0.5, 8);
-    const handleMat = new THREE.MeshStandardMaterial({color:0x888888, metalness:0.7, roughness:0.3});
-    const handle = new THREE.Mesh(handleGeo, handleMat);
-    handle.position.set(6, 1.1, 14+i*1.5);
-    handle.rotation.x = 0; // up position
-    scene.add(handle);
-
-    // Indicator light
-    const indGeo = new THREE.SphereGeometry(0.05, 8, 8);
-    const indMat = new THREE.MeshStandardMaterial({color:0x331111, emissive:0x220000, emissiveIntensity:0.3});
-    const ind = new THREE.Mesh(indGeo, indMat);
-    ind.position.set(6, 0.85, 14+i*1.5+0.15);
-    scene.add(ind);
-
-    addInteract(handle, 'lever', {index:i, handle, indicator:ind}, `lever_${i}`);
-    animLevers.push({handle, index:i, targetRot:0});
-  }
-
-  // Lever hint note
-  const note3Geo = new THREE.PlaneGeometry(0.25, 0.35);
-  const note3 = new THREE.Mesh(note3Geo, noteMat.clone());
-  note3.position.set(5.8, 1.2, 12.5);
-  note3.rotation.y = -Math.PI/2;
-  scene.add(note3);
-  addInteract(note3, 'note', {
-    title: 'LEVER INSTRUCTIONS',
-    text: 'The mirrors won\'t move until\nall three levers are activated.\n\nOrder matters.\nLeft, Right, Middle.\n\nDon\'t get it wrong.'
-  }, 'note_levers');
-
-  // Decorative props
-  // Broken clown statue
-  buildClownStatue(-5, 0, 25);
-  buildClownStatue(5, 0, 16);
-  // Old toy box
-  const toyGeo = new THREE.BoxGeometry(0.8, 0.5, 0.6);
-  const toyMat = new THREE.MeshStandardMaterial({color:0x4a3020, roughness:0.85});
-  const toy = new THREE.Mesh(toyGeo, toyMat);
-  toy.position.set(-6, 0.25, 18);
-  toy.rotation.y = 0.3;
-  toy.castShadow = true;
-  scene.add(toy);
-
-  // Hanging wires
-  for(let i=0;i<5;i++) {
-    const wireGeo = new THREE.CylinderGeometry(0.005, 0.005, 1.5+Math.random(), 4);
-    const wireMat = new THREE.MeshStandardMaterial({color:0x222222});
-    const wire = new THREE.Mesh(wireGeo, wireMat);
-    wire.position.set(-2+Math.random()*4, WALL_H-0.5, 12+Math.random()*16);
-    wire.rotation.z = (Math.random()-0.5)*0.3;
-    scene.add(wire);
-  }
-
-  // === AREA 3: MIRROR MAZE (x: -8 to 8, z: 30 to 48) ===
-  addFloor(0, 39, 16, 18);
-  addCeiling(0, 39, 16, 18);
-  // Outer walls
-  addWall(-8, 39, 0.3, 18);
-  addWall(8, 39, 0.3, 18);
-  addWall(0, 48, 16, 0.3);
-  // Front wall - gap for entrance from main hall (red door is separate, this is the mirror maze entrance)
-  // Remove part of back wall of main hall for mirror maze entrance
-  // Actually, mirror maze entrance is through the red door area - let's put a passage
-  addWall(2, 30, 12, 0.3); // close off main hall back wall except where red door is
-
-  // Mirror maze interior walls (mirrors)
-  // These only appear after lever puzzle
-  const mirrorWalls = [];
-  const mirrorPositions = [
-    {x:-2, z:33, w:0.1, d:8},
-    {x:3, z:33, w:0.1, d:8},
-    {x:-5, z:37, w:6, d:0.1},
-    {x:1, z:37, w:6, d:0.1},
-    {x:-2, z:41, w:0.1, d:6},
-    {x:4, z:41, w:0.1, d:6},
-    {x:-6, z:44, w:8, d:0.1},
-    {x:2, z:44, w:6, d:0.1},
-    {x:0, z:46, w:0.1, d:4},
-  ];
-
-  mirrorPositions.forEach((p,i) => {
-    const geo = new THREE.PlaneGeometry(Math.max(eps,p.w), Math.max(eps,p.d));
-    const m = new THREE.Mesh(geo, matMirror);
-    if(p.d > p.w) m.rotation.y = Math.PI/2; // vertical plane facing x
-    m.position.set(p.x, WALL_H/2, p.z);
-    m.visible = false;
-    scene.add(m);
-    mirrorWalls.push(m);
-    // Don't add colliders until activated
-  });
-
-  // Hidden path through mirror maze: go around left side
-  // The correct path: enter at z=30, go left, zig-zag through gaps
-  // Gaps are at specific positions in the mirror walls
-  // Mirror wall at x=-2,z=33 has gap at z>37
-  // Mirror wall at x=3,z=33 has gap at z<35
-  // etc.
-
-  // Red keycard inside mirror maze (hidden behind a mirror)
-  const redKeyMat = new THREE.MeshStandardMaterial({color:0xcc2222, emissive:0x441111, emissiveIntensity:0.3, roughness:0.4});
-  const redKey = new THREE.Mesh(keyGeo.clone(), redKeyMat);
-  redKey.position.set(-6.5, 0.02, 40);
-  redKey.rotation.y = 0.8;
-  scene.add(redKey);
-  addInteract(redKey, 'keycard', {color:'red'}, 'red_keycard');
-
-  // Green eerie light in mirror maze
-  addLight(-5, 2.5, 36, 0x003311, 0.4, 6);
-  addLight(5, 2.5, 42, 0x002211, 0.3, 6);
-
-  // === AREA 4: SECRET ROOM (x: -10 to -5, z: 30 to 38) ===
-  addFloor(-7.5, 34, 5, 8);
-  addCeiling(-7.5, 34, 5, 8);
-  addWall(-10, 34, 0.3, 8);
-  addWall(-7.5, 30, 5, 0.3);
-  addWall(-7.5, 38, 5, 0.3);
-  // Left wall with gap for red door
-  addWall(-7.5, 31.5, 0.3, 3);
-  addWall(-7.5, 36.5, 0.3, 3);
-
-  // Secret room content
-  addLight(-8, 3, 34, 0x002244, 0.6, 6);
-
-  // Final note
-  const note4Geo = new THREE.PlaneGeometry(0.3, 0.4);
-  const note4 = new THREE.Mesh(note4Geo, noteMat.clone());
-  note4.position.set(-9, 1.3, 34);
-  note4.rotation.y = Math.PI/2;
-  scene.add(note4);
-  addInteract(note4, 'note', {
-    title: 'THE TRUTH',
-    text: 'They called it "The Incident."\n\nChildren went in. None came out\nthe same. Some didn\'t come out at all.\n\nThe owner knew. He built this place\nfor them. For HIM.\n\nThe thing in the walls... it\'s not a\nmachine. It was never a machine.\n\nIf you found this room, you\'re close\nto the truth. But the truth doesn\'t\nset you free.\n\nIt lets you in deeper.'
-  }, 'note_final');
-
-  // Chapter end trigger
-  const endGeo = new THREE.PlaneGeometry(1, 1.5);
-  const endMat = new THREE.MeshStandardMaterial({color:0x0a0a0a, emissive:0x110011, emissiveIntensity:0.5, side:THREE.DoubleSide});
-  const endTrigger = new THREE.Mesh(endGeo, endMat);
-  endTrigger.position.set(-9.5, 1, 36);
-  endTrigger.rotation.y = Math.PI/2;
-  scene.add(endTrigger);
-  addInteract(endTrigger, 'chapter_end', {}, 'chapter_end');
-
-  // Creepy writing on wall
-  buildWallWriting(-9.85, 2, 32, 'HE SEES', 0.8);
-  buildWallWriting(-9.85, 1.3, 35, 'HELP ME', 0.5);
-}
-
-function buildNeonSign(x, y, z, text, color, flip=false) {
-  const group = new THREE.Group();
-  const mat = new THREE.MeshStandardMaterial({
-    color: color,
-    emissive: color,
-    emissiveIntensity: 2,
-  });
-  // Simple block letters using boxes
-  const letterW = 0.3, letterH = 0.5, spacing = 0.4;
-  const totalW = text.length * spacing;
-  const startX = -totalW/2 + spacing/2;
-
-  for(let i=0;i<text.length;i++) {
-    const ch = text[i];
-    // Simplified: each letter is a vertical bar + optional horizontal
-    const bar1 = new THREE.Mesh(new THREE.BoxGeometry(letterW*0.15, letterH, 0.05), mat);
-    bar1.position.set(startX + i*spacing, 0, 0);
-    group.add(bar1);
-
-    if(ch==='F') {
-      const top = new THREE.Mesh(new THREE.BoxGeometry(letterW, 0.08, 0.05), mat);
-      top.position.set(startX+i*spacing+0.1, letterH/2, 0);
-      group.add(top);
-      const mid = new THREE.Mesh(new THREE.BoxGeometry(letterW*0.7, 0.08, 0.05), mat);
-      mid.position.set(startX+i*spacing+0.05, 0, 0);
-      group.add(mid);
-    } else if(ch==='U'||ch==='N') {
-      const bar2 = new THREE.Mesh(new THREE.BoxGeometry(letterW*0.15, letterH, 0.05), mat);
-      bar2.position.set(startX+i*spacing+letterW*0.6, 0, 0);
-      group.add(bar2);
-      if(ch==='U') {
-        const bot = new THREE.Mesh(new THREE.BoxGeometry(letterW*0.7, 0.08, 0.05), mat);
-        bot.position.set(startX+i*spacing+0.1, -letterH/2, 0);
-        group.add(bot);
-      } else {
-        const diag = new THREE.Mesh(new THREE.BoxGeometry(letterW*0.6, 0.08, 0.05), mat);
-        diag.position.set(startX+i*spacing+0.1, 0, 0);
-        diag.rotation.z = 0.5;
-        group.add(diag);
+    // 法线
+    const { canvas: nc, ctx: nctx } = this.canvas(S);
+    nctx.fillStyle = '#8080ff';
+    nctx.fillRect(0, 0, S, S);
+    for (let p = 0; p < 6; p++) {
+      for (let l = 0; l < 15; l++) {
+        const ly = Math.random() * S;
+        nctx.strokeStyle = `rgb(${115 + Math.random() * 30 | 0},${128},${125 + Math.random() * 20 | 0})`;
+        nctx.lineWidth = 0.8;
+        nctx.beginPath();
+        nctx.moveTo(p * plankW, ly);
+        for (let cx = p * plankW; cx < (p + 1) * plankW; cx += 8) {
+          nctx.lineTo(cx, ly + (Math.random() - 0.5) * 2);
+        }
+        nctx.stroke();
       }
-    } else if(ch==='P') {
-      const top = new THREE.Mesh(new THREE.BoxGeometry(letterW, 0.08, 0.05), mat);
-      top.position.set(startX+i*spacing+0.1, letterH/2, 0);
-      group.add(top);
-      const mid = new THREE.Mesh(new THREE.BoxGeometry(letterW*0.8, 0.08, 0.05), mat);
-      mid.position.set(startX+i*spacing+0.05, 0.05, 0);
-      group.add(mid);
-      const bar2 = new THREE.Mesh(new THREE.BoxGeometry(letterW*0.15, letterH*0.5, 0.05), mat);
-      bar2.position.set(startX+i*spacing+letterW*0.6, letterH*0.25, 0);
-      group.add(bar2);
-    } else if(ch==='L') {
-      const bot = new THREE.Mesh(new THREE.BoxGeometry(letterW*0.8, 0.08, 0.05), mat);
-      bot.position.set(startX+i*spacing+0.05, -letterH/2, 0);
-      group.add(bot);
-    } else if(ch==='A') {
-      const bar2 = new THREE.Mesh(new THREE.BoxGeometry(letterW*0.15, letterH, 0.05), mat);
-      bar2.position.set(startX+i*spacing+letterW*0.6, 0, 0);
-      group.add(bar2);
-      const mid = new THREE.Mesh(new THREE.BoxGeometry(letterW*0.7, 0.08, 0.05), mat);
-      mid.position.set(startX+i*spacing+0.1, 0.05, 0);
-      group.add(mid);
-    } else if(ch==='Y') {
-      const bar2 = new THREE.Mesh(new THREE.BoxGeometry(letterW*0.15, letterH*0.5, 0.05), mat);
-      bar2.position.set(startX+i*spacing+letterW*0.6, letterH*0.25, 0);
-      group.add(bar2);
-      const bar3 = new THREE.Mesh(new THREE.BoxGeometry(letterW*0.15, letterH*0.5, 0.05), mat);
-      bar3.position.set(startX+i*spacing, letterH*0.25, 0);
-      group.add(bar3);
-      const stem = new THREE.Mesh(new THREE.BoxGeometry(letterW*0.15, letterH*0.5, 0.05), mat);
-      stem.position.set(startX+i*spacing+letterW*0.3, -letterH*0.25, 0);
-      group.add(stem);
+      // 板间缝隙法线
+      nctx.fillStyle = 'rgba(60,80,180,0.5)';
+      nctx.fillRect(p * plankW + plankW - 1, 0, 2, S);
+    }
+    const normalMap = new THREE.CanvasTexture(nc);
+    normalMap.wrapS = normalMap.wrapT = THREE.RepeatWrapping;
+
+    // 粗糙度
+    const { canvas: rc, ctx: rctx } = this.canvas(S);
+    rctx.fillStyle = '#777777';
+    rctx.fillRect(0, 0, S, S);
+    for (let i = 0; i < 5000; i++) {
+      const v = 90 + Math.random() * 60;
+      rctx.fillStyle = `rgb(${v | 0},${v | 0},${v | 0})`;
+      rctx.fillRect(Math.random() * S, Math.random() * S, 2, 2);
+    }
+    const roughnessMap = new THREE.CanvasTexture(rc);
+    roughnessMap.wrapS = roughnessMap.wrapT = THREE.RepeatWrapping;
+
+    return { colorMap, normalMap, roughnessMap };
+  }
+
+  // 天花板纹理
+  static ceiling() {
+    const S = 512, { canvas, ctx } = this.canvas(S);
+    ctx.fillStyle = '#1a1512';
+    ctx.fillRect(0, 0, S, S);
+    // 水渍斑点
+    for (let i = 0; i < 12; i++) {
+      const x = Math.random() * S, y = Math.random() * S, r = 15 + Math.random() * 35;
+      ctx.fillStyle = `rgba(25,20,16,${0.3 + Math.random() * 0.3})`;
+      ctx.beginPath();
+      ctx.ellipse(x, y, r, r * (0.6 + Math.random() * 0.4), Math.random() * Math.PI, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    // 裂纹
+    ctx.strokeStyle = 'rgba(10,8,5,0.5)';
+    ctx.lineWidth = 1;
+    for (let c = 0; c < 4; c++) {
+      ctx.beginPath();
+      let cx = Math.random() * S, cy = Math.random() * S;
+      ctx.moveTo(cx, cy);
+      for (let s = 0; s < 8; s++) {
+        cx += (Math.random() - 0.5) * 60;
+        cy += (Math.random() - 0.5) * 60;
+        ctx.lineTo(cx, cy);
+      }
+      ctx.stroke();
+    }
+    const colorMap = new THREE.CanvasTexture(canvas);
+    colorMap.wrapS = colorMap.wrapT = THREE.RepeatWrapping;
+    const nm = this._flatNormal();
+    const rm = this._flatRoughness(0.95);
+    return { colorMap, normalMap: nm, roughnessMap: rm };
+  }
+
+  // 金属纹理
+  static metal() {
+    const S = 256, { canvas, ctx } = this.canvas(S);
+    ctx.fillStyle = '#2a2a2a';
+    ctx.fillRect(0, 0, S, S);
+    // 锈迹
+    for (let i = 0; i < 15; i++) {
+      const x = Math.random() * S, y = Math.random() * S, r = 5 + Math.random() * 20;
+      const grad = ctx.createRadialGradient(x, y, 0, x, y, r);
+      grad.addColorStop(0, 'rgba(120,50,20,0.5)');
+      grad.addColorStop(1, 'rgba(60,30,10,0)');
+      ctx.fillStyle = grad;
+      ctx.fillRect(x - r, y - r, r * 2, r * 2);
+    }
+    // 刮痕
+    ctx.strokeStyle = 'rgba(80,80,80,0.3)';
+    for (let i = 0; i < 10; i++) {
+      ctx.lineWidth = Math.random() + 0.3;
+      ctx.beginPath();
+      ctx.moveTo(Math.random() * S, Math.random() * S);
+      ctx.lineTo(Math.random() * S, Math.random() * S);
+      ctx.stroke();
+    }
+    const colorMap = new THREE.CanvasTexture(canvas);
+    const nm = this._flatNormal(0.5);
+    const rm = this._flatRoughness(0.5);
+    return { colorMap, normalMap: nm, roughnessMap: rm };
+  }
+
+  static _flatNormal(intensity = 0.1) {
+    const S = 128, { canvas, ctx } = this.canvas(S);
+    const v = 128 + (Math.random() - 0.5) * intensity * 255;
+    ctx.fillStyle = `rgb(${v | 0},${v | 0},128)`;
+    ctx.fillRect(0, 0, S, S);
+    const t = new THREE.CanvasTexture(canvas);
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    return t;
+  }
+
+  static _flatRoughness(val = 0.8) {
+    const S = 64, { canvas, ctx } = this.canvas(S);
+    const v = val * 255 | 0;
+    ctx.fillStyle = `rgb(${v},${v},${v})`;
+    ctx.fillRect(0, 0, S, S);
+    const t = new THREE.CanvasTexture(canvas);
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    return t;
+  }
+
+  // 发光纹理（霓虹灯）
+  static emissive(color = '#ff2200') {
+    const S = 64, { canvas, ctx } = this.canvas(S);
+    ctx.fillStyle = color;
+    ctx.fillRect(0, 0, S, S);
+    const vg = ctx.createRadialGradient(S / 2, S / 2, 0, S / 2, S / 2, S / 2);
+    vg.addColorStop(0, 'rgba(255,255,255,0.3)');
+    vg.addColorStop(1, 'rgba(0,0,0,0.2)');
+    ctx.fillStyle = vg;
+    ctx.fillRect(0, 0, S, S);
+    return new THREE.CanvasTexture(canvas);
+  }
+}
+
+// ============================================
+// 音频系统 — Web Audio API 程序化音效
+// ============================================
+class AudioSystem {
+  constructor() {
+    this.ctx = null;
+    this.masterGain = null;
+    this.ambients = [];
+    this.initialized = false;
+  }
+
+  init() {
+    if (this.initialized) return;
+    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+    this.masterGain = this.ctx.createGain();
+    this.masterGain.gain.value = 0.7;
+    this.masterGain.connect(this.ctx.destination);
+    this.initialized = true;
+  }
+
+  resume() {
+    if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume();
+  }
+
+  // 低频隆隆声
+  startDrone() {
+    if (!this.initialized) return;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    const filter = this.ctx.createBiquadFilter();
+    osc.type = 'sawtooth';
+    osc.frequency.value = 40 + Math.random() * 10;
+    filter.type = 'lowpass';
+    filter.frequency.value = 100;
+    gain.gain.value = 0.08;
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.masterGain);
+    osc.start();
+    this.ambients.push({ osc, gain, filter });
+
+    // 第二层低音
+    const osc2 = this.ctx.createOscillator();
+    const gain2 = this.ctx.createGain();
+    osc2.type = 'sine';
+    osc2.frequency.value = 25;
+    gain2.gain.value = 0.06;
+    osc2.connect(gain2);
+    gain2.connect(this.masterGain);
+    osc2.start();
+    this.ambients.push({ osc: osc2, gain: gain2 });
+
+    // 风声（白噪声过滤）
+    this._startWind();
+  }
+
+  _startWind() {
+    const bufferSize = this.ctx.sampleRate * 2;
+    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+    const src = this.ctx.createBufferSource();
+    src.buffer = buffer;
+    src.loop = true;
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.value = 300;
+    filter.Q.value = 0.5;
+    const gain = this.ctx.createGain();
+    gain.gain.value = 0.04;
+    src.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.masterGain);
+    src.start();
+    this.ambients.push({ src, gain, filter, isNoise: true });
+    // 风声起伏
+    this._modulateWind(filter, gain);
+  }
+
+  _modulateWind(filter, gain) {
+    if (!this.initialized) return;
+    const t = this.ctx.currentTime;
+    filter.frequency.linearRampToValueAtTime(200 + Math.random() * 400, t + 3);
+    gain.gain.linearRampToValueAtTime(0.02 + Math.random() * 0.04, t + 3);
+    setTimeout(() => this._modulateWind(filter, gain), 3000 + Math.random() * 2000);
+  }
+
+  // 突发音效
+  playBang() {
+    if (!this.initialized) return;
+    const t = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'square';
+    osc.frequency.value = 60;
+    gain.gain.setValueAtTime(0.4, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
+    osc.connect(gain);
+    gain.connect(this.masterGain);
+    osc.start(t);
+    osc.stop(t + 0.3);
+  }
+
+  playWhisper() {
+    if (!this.initialized) return;
+    const t = this.ctx.currentTime;
+    const bufSize = this.ctx.sampleRate * 1.5;
+    const buf = this.ctx.createBuffer(1, bufSize, this.ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < bufSize; i++) {
+      const env = Math.sin(Math.PI * i / bufSize);
+      d[i] = (Math.random() * 2 - 1) * env * 0.3;
+    }
+    const src = this.ctx.createBufferSource();
+    src.buffer = buf;
+    const bp = this.ctx.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.frequency.value = 800 + Math.random() * 600;
+    bp.Q.value = 2;
+    const gain = this.ctx.createGain();
+    gain.gain.value = 0.15;
+    src.connect(bp);
+    bp.connect(gain);
+    gain.connect(this.masterGain);
+    src.start(t);
+  }
+
+  playCreak() {
+    if (!this.initialized) return;
+    const t = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(200, t);
+    osc.frequency.exponentialRampToValueAtTime(80, t + 0.4);
+    gain.gain.setValueAtTime(0.12, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
+    osc.connect(gain);
+    gain.connect(this.masterGain);
+    osc.start(t);
+    osc.stop(t + 0.5);
+  }
+
+  playFootstep() {
+    if (!this.initialized) return;
+    const t = this.ctx.currentTime;
+    const bufSize = this.ctx.sampleRate * 0.08;
+    const buf = this.ctx.createBuffer(1, bufSize, this.ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < bufSize; i++) {
+      const env = 1 - i / bufSize;
+      d[i] = (Math.random() * 2 - 1) * env * env * 0.5;
+    }
+    const src = this.ctx.createBufferSource();
+    src.buffer = buf;
+    const lp = this.ctx.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.value = 600;
+    const gain = this.ctx.createGain();
+    gain.gain.value = 0.1;
+    src.connect(lp);
+    lp.connect(gain);
+    gain.connect(this.masterGain);
+    src.start(t);
+  }
+
+  playPickup() {
+    if (!this.initialized) return;
+    const t = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(600, t);
+    osc.frequency.exponentialRampToValueAtTime(900, t + 0.1);
+    gain.gain.setValueAtTime(0.1, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
+    osc.connect(gain);
+    gain.connect(this.masterGain);
+    osc.start(t);
+    osc.stop(t + 0.2);
+  }
+
+  playWrongCode() {
+    if (!this.initialized) return;
+    const t = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'square';
+    osc.frequency.value = 100;
+    gain.gain.setValueAtTime(0.2, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
+    osc.connect(gain);
+    gain.connect(this.masterGain);
+    osc.start(t);
+    osc.stop(t + 0.5);
+  }
+
+  playCorrectCode() {
+    if (!this.initialized) return;
+    const t = this.ctx.currentTime;
+    [400, 500, 700].forEach((f, i) => {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = f;
+      gain.gain.setValueAtTime(0.1, t + i * 0.12);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + i * 0.12 + 0.15);
+      osc.connect(gain);
+      gain.connect(this.masterGain);
+      osc.start(t + i * 0.12);
+      osc.stop(t + i * 0.12 + 0.2);
+    });
+  }
+
+  playScream() {
+    if (!this.initialized) return;
+    const t = this.ctx.currentTime;
+    const bufSize = this.ctx.sampleRate * 1;
+    const buf = this.ctx.createBuffer(1, bufSize, this.ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < bufSize; i++) {
+      const env = Math.sin(Math.PI * i / bufSize);
+      d[i] = Math.sin(i * 0.02 * (1 + i / bufSize)) * env * 0.8;
+      d[i] += (Math.random() * 2 - 1) * env * 0.3;
+    }
+    const src = this.ctx.createBufferSource();
+    src.buffer = buf;
+    const hp = this.ctx.createBiquadFilter();
+    hp.type = 'highpass';
+    hp.frequency.value = 400;
+    const gain = this.ctx.createGain();
+    gain.gain.value = 0.5;
+    src.connect(hp);
+    hp.connect(gain);
+    gain.connect(this.masterGain);
+    src.start(t);
+  }
+
+  // 危险时加强低音
+  setDangerLevel(level) {
+    if (!this.initialized || !this.ambients[0]) return;
+    this.ambients[0].gain.gain.linearRampToValueAtTime(0.08 + level * 0.15, this.ctx.currentTime + 0.5);
+  }
+}
+
+// ============================================
+// 物品定义
+// ============================================
+const ITEMS = {
+  flashlight: { name: 'Flashlight', icon: 'fa-flashlight', color: '#ffcc00', desc: 'A worn flashlight. Still works.' },
+  red_keycard: { name: 'Red Keycard', icon: 'fa-id-card', color: '#ff3333', desc: 'A red keycard with a faded logo.' },
+  green_keycard: { name: 'Green Keycard', icon: 'fa-id-card', color: '#33ff66', desc: 'A green keycard, slightly sticky.' },
+  battery: { name: 'Battery', icon: 'fa-battery-half', color: '#ffcc00', desc: 'A small battery. Feels warm.' },
+  note_entrance: { name: 'Torn Note', icon: 'fa-file-alt', color: '#aa9977', desc: '', note: true },
+  note_mirror: { name: 'Mirror Note', icon: 'fa-file-alt', color: '#aa9977', desc: '', note: true },
+  note_secret: { name: 'Final Note', icon: 'fa-file-alt', color: '#aa9977', desc: '', note: true },
+  wrench: { name: 'Wrench', icon: 'fa-wrench', color: '#888888', desc: 'A heavy wrench. Rusty but solid.' },
+};
+
+const NOTES = {
+  note_entrance: {
+    title: 'Torn Note',
+    body: `"If you're reading this, get out. The fun house was never meant to close. THEY still walk the halls. I hid the exit code in the mirror room — look where the reflections don't match.\n\nThe maintenance keycard is in the main hall, behind the clown.\n\nDon't look at IT directly."`
+  },
+  note_mirror: {
+    title: 'Mirror Room Note',
+    body: `"The code is 4 digits. I wrote it in the secret room before IT found me.\n\nRed door: 7 3 1 9\n\nIf you're seeing this, you're already too close. The thing in the maintenance tunnels... it hears everything. Every footstep. Every breath.\n\nGod help us both."`
+  },
+  note_secret: {
+    title: 'Incident Report — CLASSIFIED',
+    body: `"INCIDENT REPORT #47\nDate: October 31, 1987\n\nSubject: The Fun House attraction, Grinsley Park\n\nFollowing the disappearance of 11 patrons during the Halloween event, the attraction was sealed. Investigation revealed a previously undocumented sublevel beneath the mirror maze.\n\nThe entity catalogued as 'SMILEY' was encountered by recovery team Delta-7. Only one member returned.\n\nRECOMMENDATION: Permanent seal. No further investigation.\n\nSTATUS: SEALED — DO NOT OPEN"`
+  }
+};
+
+// ============================================
+// 物品栏系统
+// ============================================
+class Inventory {
+  constructor() {
+    this.slots = new Array(5).fill(null);
+    this.selected = 0;
+  }
+
+  addItem(itemId) {
+    // 先找空位
+    let idx = this.slots.indexOf(null);
+    if (idx === -1) return false;
+    this.slots[idx] = itemId;
+    this.updateUI();
+    return true;
+  }
+
+  removeItem(itemId) {
+    const idx = this.slots.indexOf(itemId);
+    if (idx === -1) return false;
+    this.slots[idx] = null;
+    this.updateUI();
+    return true;
+  }
+
+  hasItem(itemId) {
+    return this.slots.includes(itemId);
+  }
+
+  selectSlot(idx) {
+    this.selected = idx;
+    this.updateUI();
+  }
+
+  getSelected() {
+    return this.slots[this.selected];
+  }
+
+  updateUI() {
+    const slotEls = document.querySelectorAll('.inv-slot');
+    slotEls.forEach((el, i) => {
+      const item = this.slots[i];
+      el.classList.toggle('has-item', !!item);
+      el.classList.toggle('selected', i === this.selected);
+      // 清除旧图标
+      const oldIcon = el.querySelector('.item-icon');
+      if (oldIcon) oldIcon.remove();
+      if (item && ITEMS[item]) {
+        const icon = document.createElement('i');
+        icon.className = `fas ${ITEMS[item].icon} item-icon`;
+        icon.style.color = ITEMS[item].color;
+        el.appendChild(icon);
+      }
+    });
+  }
+}
+
+// ============================================
+// 主游戏类
+// ============================================
+class Game {
+  constructor() {
+    this.scene = null;
+    this.camera = null;
+    this.renderer = null;
+    this.clock = new THREE.Clock();
+    this.audio = new AudioSystem();
+    this.inventory = new Inventory();
+    this.running = false;
+    this.paused = false;
+
+    // 玩家状态
+    this.playerPos = new THREE.Vector3(2, PLAYER_HEIGHT, 2);
+    this.playerVel = new THREE.Vector3();
+    this.yaw = 0;
+    this.pitch = 0;
+    this.isMoving = false;
+    this.isSprinting = false;
+    this.isCrouching = false;
+    this.stamina = 100;
+    this.battery = 100;
+    this.sanity = 100;
+    this.flashlightOn = false;
+    this.bobPhase = 0;
+    this.footstepTimer = 0;
+    this.currentHeight = PLAYER_HEIGHT;
+
+    // 输入
+    this.keys = {};
+    this.mouseLocked = false;
+
+    // 互动
+    this.interactables = [];
+    this.currentInteractable = null;
+    this.doors = [];
+    this.keypadCode = '';
+    this.keypadTarget = null;
+    this.keypadCorrectCode = '7319';
+    this.uiOpen = false;
+
+    // AI
+    this.entity = null;
+    this.entityPos = new THREE.Vector3(-12, 1.5, -12);
+    this.entityActive = false;
+    this.entitySpeed = 1.8;
+    this.entityChaseTimer = 0;
+    this.entityPatrolPoints = [];
+    this.entityPatrolIdx = 0;
+    this.lastEntitySeen = 0;
+
+    // 恐怖事件
+    this.horrorTimers = { whisper: 0, bang: 0, creak: 0, moveObj: 0, loopCheck: 0 };
+    this.dangerLevel = 0;
+    this.vhsIntensity = 0.02;
+
+    // 区域检测
+    this.currentArea = '';
+    this.areaNames = {
+      entrance: 'THE ENTRANCE',
+      main_hall: 'MAIN HALL',
+      mirror_maze: 'MIRROR MAZE',
+      secret_room: 'SECRET ROOM',
+      maint_start: 'MAINTENANCE ACCESS',
+      maint_tunnel: 'MAINTENANCE TUNNELS'
+    };
+
+    // 纹理缓存
+    this.textures = {};
+    this.materials = {};
+  }
+
+  async init() {
+    this._initRenderer();
+    this._initTextures();
+    this._initMaterials();
+    this._buildWorld();
+    this._initLighting();
+    this._initFlashlight();
+    this._initEntity();
+    this._initParticles();
+    this._setupEvents();
+    this._setupKeypad();
+    this.inventory.updateUI();
+
+    // 隐藏加载
+    setTimeout(() => document.getElementById('loading').classList.add('hidden'), 800);
+  }
+
+  _initRenderer() {
+    this.scene = new THREE.Scene();
+    this.scene.background = new THREE.Color(0x050303);
+    this.scene.fog = new THREE.FogExp2(0x050303, 0.06);
+
+    this.camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 50);
+    this.camera.position.copy(this.playerPos);
+
+    this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+    this.renderer.setSize(window.innerWidth, window.innerHeight);
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.renderer.shadowMap.enabled = true;
+    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    this.renderer.toneMappingExposure = 0.6;
+    document.body.insertBefore(this.renderer.domElement, document.body.firstChild);
+  }
+
+  _initTextures() {
+    this.textures.wall = TextureGen.wall({ color: '#3a2820', underColor: '#2a1a14' });
+    this.textures.wallDark = TextureGen.wall({ color: '#2a1a14', underColor: '#1a0e0a' });
+    this.textures.wallRed = TextureGen.wall({ color: '#3a1818', underColor: '#2a0e0e' });
+    this.textures.floor = TextureGen.floor();
+    this.textures.ceiling = TextureGen.ceiling();
+    this.textures.metal = TextureGen.metal();
+    this.textures.mirror = TextureGen._flatRoughness(0.05);
+    this.textures.neonRed = TextureGen.emissive('#ff2200');
+    this.textures.neonGreen = TextureGen.emissive('#00ff44');
+    this.textures.neonBlue = TextureGen.emissive('#0044ff');
+  }
+
+  _initMaterials() {
+    this.materials.wall = new THREE.MeshStandardMaterial({
+      map: this.textures.wall.colorMap,
+      normalMap: this.textures.wall.normalMap,
+      roughnessMap: this.textures.wall.roughnessMap,
+      roughness: 0.85,
+      metalness: 0.0,
+    });
+    this.materials.wallDark = new THREE.MeshStandardMaterial({
+      map: this.textures.wallDark.colorMap,
+      normalMap: this.textures.wallDark.normalMap,
+      roughnessMap: this.textures.wallDark.roughnessMap,
+      roughness: 0.9,
+    });
+    this.materials.wallRed = new THREE.MeshStandardMaterial({
+      map: this.textures.wallRed.colorMap,
+      normalMap: this.textures.wallRed.normalMap,
+      roughnessMap: this.textures.wallRed.roughnessMap,
+      roughness: 0.85,
+      emissive: new THREE.Color(0x1a0000),
+      emissiveIntensity: 0.3,
+    });
+    this.materials.floor = new THREE.MeshStandardMaterial({
+      map: this.textures.floor.colorMap,
+      normalMap: this.textures.floor.normalMap,
+      roughnessMap: this.textures.floor.roughnessMap,
+      roughness: 0.8,
+    });
+    this.materials.ceiling = new THREE.MeshStandardMaterial({
+      map: this.textures.ceiling.colorMap,
+      normalMap: this.textures.ceiling.normalMap,
+      roughnessMap: this.textures.ceiling.roughnessMap,
+      roughness: 0.95,
+    });
+    this.materials.metal = new THREE.MeshStandardMaterial({
+      map: this.textures.metal.colorMap,
+      normalMap: this.textures.metal.normalMap,
+      roughnessMap: this.textures.metal.roughnessMap,
+      roughness: 0.5,
+      metalness: 0.7,
+    });
+    this.materials.mirror = new THREE.MeshStandardMaterial({
+      color: 0x222233,
+      roughness: 0.05,
+      metalness: 0.95,
+      envMapIntensity: 1,
+    });
+    this.materials.door = new THREE.MeshStandardMaterial({
+      map: this.textures.metal.colorMap,
+      normalMap: this.textures.metal.normalMap,
+      roughnessMap: this.textures.metal.roughnessMap,
+      roughness: 0.6,
+      metalness: 0.5,
+    });
+    this.materials.neonRed = new THREE.MeshStandardMaterial({
+      emissive: new THREE.Color(0xff2200),
+      emissiveMap: this.textures.neonRed,
+      emissiveIntensity: 2,
+    });
+    this.materials.neonGreen = new THREE.MeshStandardMaterial({
+      emissive: new THREE.Color(0x00ff44),
+      emissiveMap: this.textures.neonGreen,
+      emissiveIntensity: 2,
+    });
+    this.materials.neonBlue = new THREE.MeshStandardMaterial({
+      emissive: new THREE.Color(0x0044ff),
+      emissiveMap: this.textures.neonBlue,
+      emissiveIntensity: 2,
+    });
+    this.materials.clown = new THREE.MeshStandardMaterial({
+      color: 0xccccaa,
+      roughness: 0.7,
+      metalness: 0.1,
+    });
+  }
+
+  // ============================================
+  // 世界构建
+  // ============================================
+  _buildWorld() {
+    // 地板（大平面）
+    const floorGeo = new THREE.PlaneGeometry(100, 100);
+    const floor = new THREE.Mesh(floorGeo, this.materials.floor);
+    floor.rotation.x = -Math.PI / 2;
+    floor.receiveShadow = true;
+    this.scene.add(floor);
+
+    // 天花板
+    const ceilGeo = new THREE.PlaneGeometry(100, 100);
+    const ceil = new THREE.Mesh(ceilGeo, this.materials.ceiling);
+    ceil.rotation.x = Math.PI / 2;
+    ceil.position.y = 3.5;
+    this.scene.add(ceil);
+
+    this._buildEntrance();
+    this._buildMainHall();
+    this._buildMirrorMaze();
+    this._buildMaintenanceTunnels();
+    this._buildSecretRoom();
+  }
+
+  _addWall(x, y, z, w, h, d, mat, collision = true) {
+    const geo = new THREE.BoxGeometry(Math.max(0.01, w), Math.max(0.01, h), Math.max(0.01, d));
+    const mesh = new THREE.Mesh(geo, mat || this.materials.wall);
+    mesh.position.set(x, y, z);
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    this.scene.add(mesh);
+    if (collision) {
+      this.interactables.push({
+        mesh, type: 'wall',
+        bounds: new THREE.Box3().setFromObject(mesh)
+      });
+    }
+    return mesh;
+  }
+
+  _buildEntrance() {
+    // 入口走廊 (x: 0~4, z: 0~8)
+    const C = CELL, H = 3.5;
+    // 左墙
+    this._addWall(0, H / 2, 4, 0.2, H, 8, this.materials.wall);
+    // 右墙
+    this._addWall(C, H / 2, 4, 0.2, H, 8, this.materials.wall);
+    // 后墙（有洞通向主厅）
+    this._addWall(2, H / 2, 8, C, H, 0.2, this.materials.wall);
+    // 前墙（入口封死感）
+    this._addWall(2, H / 2, 0, C, H, 0.2, this.materials.wallDark);
+
+    // 手电筒放在地上
+    this._createPickup(2, 0.3, 3, 'flashlight', 'fa-flashlight', '#ffcc00');
+
+    // 第一张纸条
+    this._createPickup(3.2, 0.5, 2, 'note_entrance', 'fa-file-alt', '#aa9977');
+
+    // 入口微弱灯光
+    const light = new THREE.PointLight(0xff6633, 0.3, 6);
+    light.position.set(2, 3, 1);
+    this.scene.add(light);
+  }
+
+  _buildMainHall() {
+    const C = CELL, H = 3.5;
+    // 主厅: x: 0~12, z: 8~20
+    // 后墙
+    this._addWall(6, H / 2, 20, 12, H, 0.2, this.materials.wallDark);
+    // 左墙
+    this._addWall(0, H / 2, 14, 0.2, H, 12, this.materials.wall);
+    // 右墙
+    this._addWall(12, H / 2, 14, 0.2, H, 12, this.materials.wall);
+    // 从走廊到主厅的洞（已有）
+    // 红色门（右侧，通往镜面迷宫入口 x:12, z:12）
+    this._createDoor(12, H / 2, 12, 'red', 'z', 1, 'mirror_maze');
+    // 绿色门（后墙中间，通往维护通道 x:6, z:20）
+    this._createDoor(6, H / 2, 20, 'green', 'x', -1, 'maint_start');
+
+    // 键盘锁门（后墙偏左 x:3, z:20）
+    this._createKeypadDoor(3, H / 2, 20, 'x', -1);
+
+    // 小丑雕像
+    this._createClownStatue(8, 0, 14);
+    // 绿色钥匙卡藏在小丑后面
+    this._createPickup(8.5, 0.4, 15.5, 'green_keycard', 'fa-id-card', '#33ff66');
+
+    // 桌子
+    this._createTable(4, 0, 16);
+    // 电池在桌上
+    this._createPickup(4, 0.8, 16, 'battery', 'fa-battery-half', '#ffcc00');
+
+    // 霓虹灯 "FUN"
+    this._createNeonSign(6, 3, 10, 'FUN', 'red');
+
+    // 主厅灯光
+    const hl1 = new THREE.PointLight(0xff4422, 0.5, 10);
+    hl1.position.set(6, 3, 14);
+    hl1.castShadow = true;
+    hl1.shadow.mapSize.set(512, 512);
+    this.scene.add(hl1);
+    this._flickerLight(hl1);
+
+    const hl2 = new THREE.PointLight(0xff6633, 0.3, 8);
+    hl2.position.set(2, 3, 18);
+    this.scene.add(hl2);
+    this._flickerLight(hl2, 3, 0.5);
+  }
+
+  _buildMirrorMaze() {
+    const C = CELL, H = 3.5;
+    // 镜面迷宫: x: 12~24, z: 8~20
+    // 外墙
+    this._addWall(18, H / 2, 8, 12, H, 0.2, this.materials.wallDark);
+    this._addWall(24, H / 2, 14, 0.2, H, 12, this.materials.wallDark);
+    this._addWall(18, H / 2, 20, 12, H, 0.2, this.materials.wallRed);
+
+    // 内部镜子墙（迷宫布局）
+    // 纵向墙1
+    this._addWall(16, H / 2, 13, 0.1, H, 5, this.materials.mirror);
+    // 纵向墙2
+    this._addWall(20, H / 2, 17, 0.1, H, 5, this.materials.mirror);
+    // 横向墙1
+    this._addWall(14.5, H / 2, 16, 5, H, 0.1, this.materials.mirror);
+    // 横向墙2
+    this._addWall(21.5, H / 2, 11, 5, H, 0.1, this.materials.mirror);
+    // 小丑画（假画，增加恐怖感）
+    this._addWall(22, H / 2, 15, 0.05, 2, 1.5, this.materials.wallRed, false);
+    // 纸条
+    this._createPickup(22.3, 1.5, 15, 'note_mirror', 'fa-file-alt', '#aa9977');
+
+    // 绿色环境光
+    const ml = new THREE.PointLight(0x00ff44, 0.2, 15);
+    ml.position.set(18, 3, 14);
+    this.scene.add(ml);
+    this._flickerLight(ml, 5, 0.3);
+
+    const ml2 = new THREE.PointLight(0x002244, 0.15, 10);
+    ml2.position.set(14, 3, 18);
+    this.scene.add(ml2);
+  }
+
+  _buildMaintenanceTunnels() {
+    const C = CELL, H = 3.5;
+    // 维护通道入口: x: 4~8, z: 20~24
+    // 然后隧道: x: 4~8, z: 24~36
+    // 左墙
+    this._addWall(4, H / 2, 30, 0.2, H, 16, this.materials.wallDark);
+    // 右墙
+    this._addWall(8, H / 2, 30, 0.2, H, 16, this.materials.wallDark);
+    // 顶
+    this._addWall(6, H / 2, 24, 4, H, 0.2, this.materials.wallDark);
+    // 通道末端墙（有暗门）
+    this._addWall(6, H / 2, 36, 4, H, 0.2, this.materials.wallDark);
+    // 暗门标记（用不同材质）
+    this._createHiddenDoor(6, H / 2, 36, 'z', -1, 'secret_room');
+
+    // 管道装饰
+    for (let z = 22; z < 36; z += 3) {
+      const pipe = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.08, 0.08, C, 8),
+        this.materials.metal
+      );
+      pipe.rotation.z = Math.PI / 2;
+      pipe.position.set(4.15, 3, z);
+      this.scene.add(pipe);
+      const pipe2 = pipe.clone();
+      pipe2.position.set(7.85, 2.8, z + 1.5);
+      this.scene.add(pipe2);
+    }
+
+    // 扳手
+    this._createPickup(5, 0.3, 28, 'wrench', 'fa-wrench', '#888888');
+
+    // 蓝色灯光
+    const tl1 = new THREE.PointLight(0x0044ff, 0.3, 8);
+    tl1.position.set(6, 3, 24);
+    this.scene.add(tl1);
+    this._flickerLight(tl1, 2, 0.4);
+
+    const tl2 = new THREE.PointLight(0x002244, 0.15, 6);
+    tl2.position.set(6, 3, 32);
+    this.scene.add(tl2);
+
+    // 霓虹 "PLAY"
+    this._createNeonSign(6, 3, 25, 'PLAY', 'blue');
+
+    // AI 巡逻点
+    this.entityPatrolPoints = [
+      new THREE.Vector3(6, 1.5, 30),
+      new THREE.Vector3(5, 1.5, 26),
+      new THREE.Vector3(7, 1.5, 34),
+      new THREE.Vector3(6, 1.5, 28),
+    ];
+  }
+
+  _buildSecretRoom() {
+    const C = CELL, H = 3.5;
+    // 秘密房间: x: 4~8, z: 36~42
+    // 左墙
+    this._addWall(4, H / 2, 39, 0.2, H, 6, this.materials.wallRed);
+    // 右墙
+    this._addWall(8, H / 2, 39, 0.2, H, 6, this.materials.wallRed);
+    // 后墙
+    this._addWall(6, H / 2, 42, 4, H, 0.2, this.materials.wallRed);
+    // 桌子
+    this._createTable(6, 0, 39);
+    // 最终纸条
+    this._createPickup(6, 0.8, 39, 'note_secret', 'fa-file-alt', '#aa9977');
+
+    // 红色灯光
+    const sl = new THREE.PointLight(0xff0000, 0.4, 10);
+    sl.position.set(6, 3, 39);
+    sl.castShadow = true;
+    sl.shadow.mapSize.set(512, 512);
+    this.scene.add(sl);
+    this._flickerLight(sl, 1.5, 0.6);
+
+    // "SMILE" 霓虹
+    this._createNeonSign(6, 3, 41, 'SMILE', 'red');
+  }
+
+  // ============================================
+  // 物体工厂
+  // ============================================
+  _createPickup(x, y, z, itemId, iconClass, color) {
+    const group = new THREE.Group();
+    // 物品视觉表示
+    let geo, mat;
+    if (itemId === 'flashlight') {
+      geo = new THREE.CylinderGeometry(0.04, 0.04, 0.3, 8);
+      mat = new THREE.MeshStandardMaterial({ color: 0x888888, metalness: 0.6, roughness: 0.4 });
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.rotation.z = Math.PI / 2;
+      group.add(mesh);
+      // 灯头
+      const head = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.06, 0.04, 0.08, 8),
+        new THREE.MeshStandardMaterial({ color: 0x444444, metalness: 0.7, roughness: 0.3 })
+      );
+      head.rotation.z = Math.PI / 2;
+      head.position.x = 0.19;
+      group.add(head);
+    } else if (itemId.startsWith('note_')) {
+      geo = new THREE.PlaneGeometry(0.25, 0.35);
+      mat = new THREE.MeshStandardMaterial({ color: 0xd4c4a0, roughness: 0.9, side: THREE.DoubleSide });
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.rotation.x = -0.1;
+      group.add(mesh);
+    } else if (itemId === 'battery') {
+      geo = new THREE.CylinderGeometry(0.03, 0.03, 0.1, 8);
+      mat = new THREE.MeshStandardMaterial({ color: 0x222222, metalness: 0.3, roughness: 0.5 });
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.rotation.z = Math.PI / 2;
+      group.add(mesh);
+    } else if (itemId === 'wrench') {
+      geo = new THREE.BoxGeometry(0.04, 0.04, 0.3);
+      mat = new THREE.MeshStandardMaterial({ color: 0x666666, metalness: 0.7, roughness: 0.4 });
+      group.add(new THREE.Mesh(geo, mat));
+    } else {
+      // 钥匙卡
+      geo = new THREE.BoxGeometry(0.2, 0.03, 0.12);
+      mat = new THREE.MeshStandardMaterial({
+        color: color === '#ff3333' ? 0xff3333 : color === '#33ff66' ? 0x33ff66 : 0xffffff,
+        metalness: 0.4, roughness: 0.3, emissive: new THREE.Color(color),
+        emissiveIntensity: 0.3
+      });
+      group.add(new THREE.Mesh(geo, mat));
+    }
+
+    group.position.set(x, y, z);
+    group.userData = { type: 'pickup', itemId, collected: false };
+    this.scene.add(group);
+    this.interactables.push({
+      mesh: group, type: 'pickup', itemId,
+      bounds: new THREE.Box3().setFromCenterAndSize(
+        new THREE.Vector3(x, y, z), new THREE.Vector3(0.6, 0.6, 0.6)
+      )
+    });
+  }
+
+  _createDoor(x, y, z, color, axis, dir, targetArea) {
+    const geo = new THREE.BoxGeometry(axis === 'z' ? 0.15 : 1.2, 2.6, axis === 'z' ? 1.2 : 0.15);
+    const mat = this.materials.door.clone();
+    const door = new THREE.Mesh(geo, mat);
+    door.position.set(x, y, z);
+    door.castShadow = true;
+    door.receiveShadow = true;
+    // 指示灯
+    const indicatorGeo = new THREE.SphereGeometry(0.06, 8, 8);
+    const indicatorMat = new THREE.MeshStandardMaterial({
+      emissive: new THREE.Color(color === 'red' ? 0xff2200 : 0x00ff44),
+      emissiveIntensity: 1,
+    });
+    const indicator = new THREE.Mesh(indicatorGeo, indicatorMat);
+    indicator.position.set(
+      axis === 'z' ? (dir > 0 ? 0.1 : -0.1) : 0,
+      1.2,
+      axis === 'z' ? 0 : (dir > 0 ? 0.1 : -0.1)
+    );
+    door.add(indicator);
+
+    door.userData = { type: 'door', color, locked: true, axis, dir, targetArea, openAmount: 0 };
+    this.scene.add(door);
+    this.doors.push(door);
+    this.interactables.push({
+      mesh: door, type: 'door', door,
+      bounds: new THREE.Box3().setFromObject(door)
+    });
+  }
+
+  _createKeypadDoor(x, y, z, axis, dir) {
+    const geo = new THREE.BoxGeometry(axis === 'z' ? 0.15 : 1.2, 2.6, axis === 'z' ? 1.2 : 0.15);
+    const door = new THREE.Mesh(geo, this.materials.door.clone());
+    door.position.set(x, y, z);
+    door.castShadow = true;
+    // 键盘面板
+    const padGeo = new THREE.BoxGeometry(0.3, 0.4, 0.05);
+    const padMat = new THREE.MeshStandardMaterial({ color: 0x222222, metalness: 0.5, roughness: 0.3 });
+    const pad = new THREE.Mesh(padGeo, padMat);
+    pad.position.set(
+      axis === 'z' ? (dir > 0 ? 0.1 : -0.1) : 0,
+      1.4,
+      axis === 'z' ? 0 : (dir > 0 ? 0.1 : -0.1)
+    );
+    door.add(pad);
+
+    door.userData = { type: 'keypad_door', locked: true, axis, dir, openAmount: 0 };
+    this.scene.add(door);
+    this.doors.push(door);
+    this.interactables.push({
+      mesh: door, type: 'keypad_door', door,
+      bounds: new THREE.Box3().setFromObject(door)
+    });
+  }
+
+  _createHiddenDoor(x, y, z, axis, dir, targetArea) {
+    // 外观和墙一样，但可互动
+    const geo = new THREE.BoxGeometry(1.5, 2.8, 0.2);
+    const door = new THREE.Mesh(geo, this.materials.wallDark.clone());
+    door.position.set(x, y, z);
+    door.userData = { type: 'hidden_door', locked: true, axis, dir, targetArea, openAmount: 0, revealed: false };
+    this.scene.add(door);
+    this.doors.push(door);
+    this.interactables.push({
+      mesh: door, type: 'hidden_door', door,
+      bounds: new THREE.Box3().setFromCenterAndSize(
+        new THREE.Vector3(x, y, z), new THREE.Vector3(1.5, 2.8, 0.4)
+      )
+    });
+  }
+
+  _createClownStatue(x, y, z) {
+    const group = new THREE.Group();
+    // 身体（圆柱）
+    const body = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.25, 0.3, 1.2, 12),
+      this.materials.clown
+    );
+    body.position.y = 0.6;
+    group.add(body);
+    // 头（球）
+    const head = new THREE.Mesh(
+      new THREE.SphereGeometry(0.22, 12, 12),
+      this.materials.clown
+    );
+    head.position.y = 1.4;
+    group.add(head);
+    // 鼻子（红色小球）
+    const nose = new THREE.Mesh(
+      new THREE.SphereGeometry(0.06, 8, 8),
+      new THREE.MeshStandardMaterial({ color: 0xff0000, emissive: 0xff0000, emissiveIntensity: 0.3 })
+    );
+    nose.position.set(0, 1.4, 0.2);
+    group.add(nose);
+    // 帽子
+    const hat = new THREE.Mesh(
+      new THREE.ConeGeometry(0.2, 0.4, 8),
+      new THREE.MeshStandardMaterial({ color: 0x880000 })
+    );
+    hat.position.y = 1.75;
+    group.add(hat);
+
+    group.position.set(x, y, z);
+    group.userData = { type: 'clown_statue', origX: x, origZ: z };
+    this.scene.add(group);
+    this.interactables.push({
+      mesh: group, type: 'clown_statue',
+      bounds: new THREE.Box3().setFromCenterAndSize(
+        new THREE.Vector3(x, y + 0.9, z), new THREE.Vector3(0.6, 2, 0.6)
+      )
+    });
+  }
+
+  _createTable(x, y, z) {
+    const group = new THREE.Group();
+    const top = new THREE.Mesh(
+      new THREE.BoxGeometry(1, 0.06, 0.6),
+      new THREE.MeshStandardMaterial({ color: 0x3a2820, roughness: 0.8 })
+    );
+    top.position.y = 0.7;
+    group.add(top);
+    // 腿
+    for (let lx of [-0.4, 0.4]) {
+      for (let lz of [-0.22, 0.22]) {
+        const leg = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.03, 0.03, 0.7, 6),
+          this.materials.metal
+        );
+        leg.position.set(lx, 0.35, lz);
+        group.add(leg);
+      }
+    }
+    group.position.set(x, y, z);
+    this.scene.add(group);
+    this.interactables.push({
+      mesh: group, type: 'prop',
+      bounds: new THREE.Box3().setFromCenterAndSize(
+        new THREE.Vector3(x, y + 0.4, z), new THREE.Vector3(1, 0.8, 0.6)
+      )
+    });
+  }
+
+  _createNeonSign(x, y, z, text, color) {
+    const group = new THREE.Group();
+    const mat = color === 'red' ? this.materials.neonRed :
+                color === 'green' ? this.materials.neonGreen :
+                this.materials.neonBlue;
+    // 简易文字用方块阵列表示
+    const chars = {
+      'F': [[0,0],[0,1],[0,2],[0,3],[1,0],[1,2],[2,0],[2,2],[2,3]],
+      'U': [[0,0],[0,1],[0,2],[0,3],[1,3],[2,0],[2,1],[2,2],[2,3]],
+      'N': [[0,0],[0,1],[0,2],[0,3],[1,1],[2,0],[2,1],[2,2],[2,3]],
+      'P': [[0,0],[0,1],[0,2],[0,3],[1,0],[1,2],[2,0],[2,1]],
+      'L': [[0,0],[0,1],[0,2],[0,3],[1,3],[2,3]],
+      'A': [[0,1],[0,2],[0,3],[1,0],[1,1],[1,2],[1,3],[2,0],[2,3]],
+      'Y': [[0,0],[0,1],[0,2],[1,2],[2,0],[2,1],[2,2]],
+      'S': [[0,1],[0,2],[0,3],[1,0],[1,2],[2,0],[2,1],[2,3]],
+      'M': [[0,0],[0,3],[1,1],[1,2],[2,0],[2,3]],
+      'I': [[0,0],[0,1],[0,2],[0,3],[1,0],[1,1],[1,2],[1,3],[2,0],[2,1],[2,2],[2,3]],
+      'E': [[0,0],[0,1],[0,2],[0,3],[1,0],[1,2],[2,0],[2,1],[2,2],[2,3]],
+    };
+    let offsetX = 0;
+    for (const ch of text) {
+      const pixels = chars[ch] || [];
+      for (const [px, py] of pixels) {
+        const block = new THREE.Mesh(
+          new THREE.BoxGeometry(0.08, 0.12, 0.03),
+          mat
+        );
+        block.position.set(offsetX + px * 0.1, -py * 0.15 + 0.3, 0);
+        group.add(block);
+      }
+      offsetX += 0.5;
+    }
+    group.position.set(x, y, z);
+    this.scene.add(group);
+    // 霓虹灯光
+    const lightColor = color === 'red' ? 0xff2200 : color === 'green' ? 0x00ff44 : 0x0044ff;
+    const light = new THREE.PointLight(lightColor, 0.5, 6);
+    light.position.set(x, y, z + 0.5);
+    this.scene.add(light);
+    this._flickerLight(light, 2 + Math.random() * 3, 0.3 + Math.random() * 0.3);
+  }
+
+  // ============================================
+  // 灯光系统
+  // ============================================
+  _initLighting() {
+    // 极低环境光
+    const ambient = new THREE.AmbientLight(0x110808, 0.3);
+    this.scene.add(ambient);
+  }
+
+  _initFlashlight() {
+    this.flashlight = new THREE.SpotLight(0xffeedd, 2, 20, Math.PI / 6, 0.4, 1.5);
+    this.flashlight.castShadow = true;
+    this.flashlight.shadow.mapSize.set(1024, 1024);
+    this.flashlight.shadow.camera.near = 0.3;
+    this.flashlight.shadow.camera.far = 20;
+    this.flashlight.visible = false;
+
+    // 手电筒锥形视觉
+    const coneGeo = new THREE.ConeGeometry(1.5, 4, 16, 1, true);
+    const coneMat = new THREE.MeshBasicMaterial({
+      color: 0xffeedd,
+      transparent: true,
+      opacity: 0.02,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+    });
+    this.flashlightCone = new THREE.Mesh(coneGeo, coneMat);
+    this.flashlightCone.rotation.x = Math.PI / 2;
+    this.flashlightCone.position.z = -2;
+    this.flashlightCone.visible = false;
+
+    this.flashlightTarget = new THREE.Object3D();
+    this.flashlightTarget.position.z = -1;
+    this.camera.add(this.flashlightTarget);
+    this.camera.add(this.flashlight);
+    this.flashlight.target = this.flashlightTarget;
+    this.camera.add(this.flashlightCone);
+
+    this.scene.add(this.camera);
+  }
+
+  _flickerLight(light, interval = 2, intensity = 0.3) {
+    const flicker = () => {
+      if (!this.running) return;
+      const baseIntensity = light.userData.baseIntensity || light.intensity;
+      if (!light.userData.baseIntensity) light.userData.baseIntensity = light.intensity;
+      const rand = Math.random();
+      if (rand < 0.1) {
+        light.intensity = 0;
+        setTimeout(() => { light.intensity = baseIntensity; }, 50 + Math.random() * 100);
+      } else if (rand < 0.3) {
+        light.intensity = baseIntensity * (0.3 + Math.random() * 0.7);
+      }
+      setTimeout(flicker, (interval * 0.5 + Math.random() * interval) * 1000);
+    };
+    setTimeout(flicker, Math.random() * interval * 1000);
+  }
+
+  // ============================================
+  // 粒子系统（灰尘）
+  // ============================================
+  _initParticles() {
+    const count = 500;
+    const geo = new THREE.BufferGeometry();
+    const positions = new Float32Array(count * 3);
+    for (let i = 0; i < count; i++) {
+      positions[i * 3] = (Math.random() - 0.5) * 30;
+      positions[i * 3 + 1] = Math.random() * 3.5;
+      positions[i * 3 + 2] = (Math.random() - 0.5) * 50;
+    }
+    geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    const mat = new THREE.PointsMaterial({
+      color: 0x998877,
+      size: 0.02,
+      transparent: true,
+      opacity: 0.4,
+      depthWrite: false,
+    });
+    this.dustParticles = new THREE.Points(geo, mat);
+    this.scene.add(this.dustParticles);
+  }
+
+  // ============================================
+  // AI 实体
+  // ============================================
+  _initEntity() {
+    const group = new THREE.Group();
+    // 人形暗影
+    const bodyMat = new THREE.MeshStandardMaterial({
+      color: 0x050505,
+      roughness: 0.95,
+      metalness: 0.1,
+    });
+    // 身体
+    const body = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.25, 1.4, 8), bodyMat);
+    body.position.y = 0.7;
+    group.add(body);
+    // 头
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.18, 8, 8), bodyMat);
+    head.position.y = 1.6;
+    group.add(head);
+    // 发光眼睛
+    const eyeMat = new THREE.MeshStandardMaterial({
+      emissive: new THREE.Color(0xff0000),
+      emissiveIntensity: 3,
+    });
+    const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.03, 6, 6), eyeMat);
+    eyeL.position.set(-0.07, 1.62, 0.15);
+    group.add(eyeL);
+    const eyeR = new THREE.Mesh(new THREE.SphereGeometry(0.03, 6, 6), eyeMat);
+    eyeR.position.set(0.07, 1.62, 0.15);
+    group.add(eyeR);
+
+    // 眼睛光
+    const eyeLight = new THREE.PointLight(0xff0000, 0.3, 3);
+    eyeLight.position.set(0, 1.62, 0.2);
+    group.add(eyeLight);
+
+    group.position.copy(this.entityPos);
+    group.visible = false;
+    this.entity = group;
+    this.scene.add(group);
+  }
+
+  // ============================================
+  // 事件系统
+  // ============================================
+  _setupEvents() {
+    // 键盘
+    document.addEventListener('keydown', (e) => {
+      this.keys[e.code] = true;
+      if (e.code === 'KeyF' && !this.uiOpen) this._toggleFlashlight();
+      if (e.code === 'KeyE' && !this.uiOpen) this._interact();
+      if (e.code === 'Escape') this._handleEscape();
+      // 数字键选择物品栏
+      if (e.code >= 'Digit1' && e.code <= 'Digit5') {
+        this.inventory.selectSlot(parseInt(e.code.charAt(5)) - 1);
+      }
+    });
+    document.addEventListener('keyup', (e) => { this.keys[e.code] = false; });
+
+    // 鼠标
+    document.addEventListener('mousemove', (e) => {
+      if (!this.mouseLocked || this.paused || this.uiOpen) return;
+      this.yaw -= e.movementX * MOUSE_SENS;
+      this.pitch -= e.movementY * MOUSE_SENS;
+      this.pitch = Math.max(-Math.PI / 2 + 0.1, Math.min(Math.PI / 2 - 0.1, this.pitch));
+    });
+
+    // 指针锁
+    this.renderer.domElement.addEventListener('click', () => {
+      if (this.running && !this.paused && !this.uiOpen) {
+        this.renderer.domElement.requestPointerLock();
+      }
+    });
+    document.addEventListener('pointerlockchange', () => {
+      this.mouseLocked = document.pointerLockElement === this.renderer.domElement;
+      if (!this.mouseLocked && this.running && !this.paused && !this.uiOpen) {
+        document.getElementById('pause-overlay').classList.add('active');
+        this.paused = true;
+      }
+    });
+
+    // 恢复
+    document.getElementById('pause-overlay').addEventListener('click', () => {
+      this.paused = false;
+      document.getElementById('pause-overlay').classList.remove('active');
+      this.renderer.domElement.requestPointerLock();
+    });
+
+    // 窗口大小
+    window.addEventListener('resize', () => {
+      this.camera.aspect = window.innerWidth / window.innerHeight;
+      this.camera.updateProjectionMatrix();
+      this.renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    // 开始按钮
+    document.getElementById('play-btn').addEventListener('click', () => {
+      this._startGame();
+    });
+  }
+
+  _setupKeypad() {
+    const display = document.getElementById('keypad-display');
+    const feedback = document.getElementById('keypad-feedback');
+    document.querySelectorAll('.keypad-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const val = btn.dataset.val;
+        if (val === 'C') {
+          this.keypadCode = '';
+          display.textContent = '_ _ _ _';
+          feedback.textContent = '';
+        } else if (val === 'E') {
+          this._checkKeypadCode();
+        } else {
+          if (this.keypadCode.length < 4) {
+            this.keypadCode += val;
+            let displayText = '';
+            for (let i = 0; i < 4; i++) displayText += (i < this.keypadCode.length ? this.keypadCode[i] : '_') + ' ';
+            display.textContent = displayText.trim();
+          }
+        }
+      });
+    });
+  }
+
+  _checkKeypadCode() {
+    const display = document.getElementById('keypad-display');
+    const feedback = document.getElementById('keypad-feedback');
+    if (this.keypadCode === this.keypadCorrectCode) {
+      this.audio.playCorrectCode();
+      feedback.textContent = 'ACCESS GRANTED';
+      feedback.style.color = '#00ff66';
+      // 解锁键盘门
+      const kpDoor = this.doors.find(d => d.userData.type === 'keypad_door');
+      if (kpDoor) kpDoor.userData.locked = false;
+      setTimeout(() => {
+        this._closeKeypad();
+        // 自动开门
+        if (kpDoor) kpDoor.userData.openAmount = 1;
+      }, 800);
+    } else {
+      this.audio.playWrongCode();
+      feedback.textContent = 'ACCESS DENIED';
+      feedback.style.color = '#ff2222';
+      display.classList.add('glitch-text');
+      setTimeout(() => {
+        display.classList.remove('glitch-text');
+        this.keypadCode = '';
+        display.textContent = '_ _ _ _';
+        feedback.textContent = '';
+      }, 600);
     }
   }
 
-  group.position.set(x, y, z);
-  if(flip) group.rotation.y = Math.PI;
-  scene.add(group);
-
-  // Add neon point light
-  const nl = addLight(x, y, z+(flip?-0.5:0.5), color, 0.8, 5);
-  nl.userData = {baseI:0.8, minI:0.1, speed:3+Math.random()*4, phase:Math.random()*10};
-  flickerLights.push(nl);
-
-  return group;
-}
-
-function buildClownStatue(x, y, z) {
-  const group = new THREE.Group();
-  // Body
-  const body = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.3, 1.2, 8), new THREE.MeshStandardMaterial({color:0x6a2a2a, roughness:0.8}));
-  body.position.y = 0.6;
-  group.add(body);
-  // Head
-  const head = new THREE.Mesh(new THREE.SphereGeometry(0.22, 8, 8), new THREE.MeshStandardMaterial({color:0xddccaa, roughness:0.7}));
-  head.position.y = 1.4;
-  group.add(head);
-  // Nose
-  const nose = new THREE.Mesh(new THREE.SphereGeometry(0.06, 6, 6), new THREE.MeshStandardMaterial({color:0xff0000, emissive:0x440000, emissiveIntensity:0.3}));
-  nose.position.set(0, 1.38, 0.2);
-  group.add(nose);
-  // Cracked face - dark line
-  const crackGeo = new THREE.BoxGeometry(0.01, 0.3, 0.01);
-  const crackMat = new THREE.MeshStandardMaterial({color:0x111111});
-  const crack = new THREE.Mesh(crackGeo, crackMat);
-  crack.position.set(0.05, 1.35, 0.22);
-  crack.rotation.z = 0.2;
-  group.add(crack);
-  // Hat
-  const hat = new THREE.Mesh(new THREE.ConeGeometry(0.2, 0.3, 8), new THREE.MeshStandardMaterial({color:0x222222, roughness:0.7}));
-  hat.position.y = 1.7;
-  group.add(hat);
-
-  group.position.set(x, y, z);
-  group.rotation.y = Math.random() * Math.PI * 2;
-  group.castShadow = true;
-  scene.add(group);
-  return group;
-}
-
-function buildWallWriting(x, y, z, text, scale=1) {
-  // Text on wall using a canvas texture
-  const c = document.createElement('canvas');
-  c.width = 256; c.height = 64;
-  const ctx = c.getContext('2d');
-  ctx.fillStyle = 'rgba(0,0,0,0)';
-  ctx.fillRect(0,0,256,64);
-  ctx.font = '28px Creepster';
-  ctx.fillStyle = '#440000';
-  ctx.textAlign = 'center';
-  // Slightly jittery text
-  for(let i=0;i<text.length;i++) {
-    ctx.fillText(text[i], 30+i*22+Math.random()*3-1.5, 40+Math.random()*4-2);
+  _openKeypad() {
+    this.uiOpen = true;
+    this.keypadCode = '';
+    document.getElementById('keypad-display').textContent = '_ _ _ _';
+    document.getElementById('keypad-feedback').textContent = '';
+    document.getElementById('keypad-modal').classList.add('active');
+    document.exitPointerLock();
   }
-  const tex = new THREE.CanvasTexture(c);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  const geo = new THREE.PlaneGeometry(2*scale, 0.5*scale);
-  const mat = new THREE.MeshStandardMaterial({map:tex, transparent:true, emissive:0x220000, emissiveIntensity:0.3, side:THREE.DoubleSide});
-  const m = new THREE.Mesh(geo, mat);
-  m.position.set(x, y, z);
-  m.rotation.y = Math.PI/2;
-  scene.add(m);
-  return m;
-}
 
-// ============================================================
-// FLASHLIGHT SYSTEM
-// ============================================================
-let flashlight = null;
-let flashlightTarget = null;
+  _closeKeypad() {
+    this.uiOpen = false;
+    document.getElementById('keypad-modal').classList.remove('active');
+    this.renderer.domElement.requestPointerLock();
+  }
 
-function createFlashlight() {
-  flashlight = new THREE.SpotLight(0xffeedd, 3, 20, Math.PI*0.22, 0.4, 1.5);
-  flashlight.castShadow = true;
-  flashlight.shadow.mapSize.set(1024, 1024);
-  flashlight.shadow.bias = -0.001;
-  flashlight.shadow.camera.near = 0.3;
-  flashlight.shadow.camera.far = 20;
-
-  flashlightTarget = new THREE.Object3D();
-  scene.add(flashlightTarget);
-  flashlight.target = flashlightTarget;
-
-  camera.add(flashlight);
-  flashlight.position.set(0.15, -0.1, -0.3);
-  scene.add(camera);
-
-  flashlight.visible = false;
-}
-
-// ============================================================
-// ENEMY AI
-// ============================================================
-let enemy = null;
-let enemyMesh = null;
-
-function createEnemy() {
-  const group = new THREE.Group();
-  // Tall dark figure
-  const bodyGeo = new THREE.CylinderGeometry(0.15, 0.25, 2.8, 8);
-  const bodyMat = new THREE.MeshStandardMaterial({color:0x050505, roughness:1, metalness:0});
-  const body = new THREE.Mesh(bodyGeo, bodyMat);
-  body.position.y = 1.4;
-  group.add(body);
-  // Head
-  const headGeo = new THREE.SphereGeometry(0.18, 8, 8);
-  const head = new THREE.Mesh(headGeo, bodyMat);
-  head.position.y = 3;
-  head.scale.y = 1.3;
-  group.add(head);
-  // Eyes
-  const eyeGeo = new THREE.SphereGeometry(0.03, 6, 6);
-  const eyeMat = new THREE.MeshStandardMaterial({color:0xff0000, emissive:0xff0000, emissiveIntensity:3});
-  const eye1 = new THREE.Mesh(eyeGeo, eyeMat);
-  eye1.position.set(-0.06, 3.05, 0.15);
-  group.add(eye1);
-  const eye2 = new THREE.Mesh(eyeGeo, eyeMat);
-  eye2.position.set(0.06, 3.05, 0.15);
-  group.add(eye2);
-
-  // Arms
-  const armGeo = new THREE.CylinderGeometry(0.04, 0.03, 1.5, 6);
-  const arm1 = new THREE.Mesh(armGeo, bodyMat);
-  arm1.position.set(-0.3, 2, 0);
-  arm1.rotation.z = 0.3;
-  group.add(arm1);
-  const arm2 = new THREE.Mesh(armGeo, bodyMat);
-  arm2.position.set(0.3, 2, 0);
-  arm2.rotation.z = -0.3;
-  group.add(arm2);
-
-  group.position.set(5, 0, 20);
-  group.visible = false;
-  scene.add(group);
-  enemyMesh = group;
-
-  enemy = {
-    mesh: group,
-    pos: new THREE.Vector3(5, 0, 20),
-    active: false,
-    speed: 1.5,
-    state: 'idle', // idle, stalking, chasing
-    targetPos: new THREE.Vector3(),
-    lastSeen: 0,
-    canSeePlayer: false,
-    soundTimer: 0
-  };
-}
-
-function updateEnemy(dt) {
-  if(!enemy || !enemy.active || S.over || S.chapterEnd) return;
-
-  const pp = camera.position;
-  const ep = enemy.pos;
-
-  // Check if player can see enemy
-  const dir = new THREE.Vector3().subVectors(ep, pp).normalize();
-  dir.y = 0;
-  const camDir = new THREE.Vector3();
-  camera.getWorldDirection(camDir);
-  camDir.y = 0;
-  const dot = camDir.dot(dir);
-  const dist = pp.distanceTo(ep);
-
-  enemy.canSeePlayer = dot < -0.3 && dist < 15; // behind player
-  if(dist < 3) enemy.canSeePlayer = true; // too close always detected
-
-  if(enemy.canSeePlayer) {
-    enemy.lastSeen = S.time;
-    if(dist < 2.5) {
-      // Jumpscare!
-      triggerJumpscare();
+  _handleEscape() {
+    if (document.getElementById('note-modal').classList.contains('active')) {
+      document.getElementById('note-modal').classList.remove('active');
+      this.uiOpen = false;
+      this.renderer.domElement.requestPointerLock();
       return;
     }
-  }
-
-  // State machine
-  if(enemy.state === 'idle') {
-    if(S.time > 30 && !S.enemyActive) {
-      S.enemyActive = true;
-      enemy.state = 'stalking';
-      enemy.mesh.visible = true;
-      // Place enemy far from player
-      const angle = Math.random()*Math.PI*2;
-      enemy.pos.set(pp.x + Math.cos(angle)*12, 0, pp.z + Math.sin(angle)*12);
-      enemy.mesh.position.copy(enemy.pos);
+    if (document.getElementById('keypad-modal').classList.contains('active')) {
+      this._closeKeypad();
+      return;
+    }
+    if (this.mouseLocked) {
+      document.exitPointerLock();
+      this.paused = true;
+      document.getElementById('pause-overlay').classList.add('active');
+    } else if (this.paused) {
+      this.paused = false;
+      document.getElementById('pause-overlay').classList.remove('active');
+      this.renderer.domElement.requestPointerLock();
     }
   }
 
-  if(enemy.state === 'stalking') {
-    // Move toward player when not seen
-    if(!enemy.canSeePlayer && S.time - enemy.lastSeen > 1) {
-      const toPlayer = new THREE.Vector3().subVectors(pp, ep);
-      toPlayer.y = 0;
-      if(toPlayer.length() > 5) {
-        toPlayer.normalize().multiplyScalar(enemy.speed * dt * 0.5);
-        const newX = ep.x + toPlayer.x;
-        const newZ = ep.z + toPlayer.z;
-        if(!checkCol(newX, newZ)) {
-          ep.x = newX;
-          ep.z = newZ;
+  _toggleFlashlight() {
+    if (!this.inventory.hasItem('flashlight')) return;
+    this.flashlightOn = !this.flashlightOn;
+    this.flashlight.visible = this.flashlightOn;
+    this.flashlightCone.visible = this.flashlightOn;
+  }
+
+  _interact() {
+    if (!this.currentInteractable) return;
+    const obj = this.currentInteractable;
+
+    if (obj.type === 'pickup') {
+      const itemId = obj.mesh.userData.itemId;
+      if (obj.mesh.userData.collected) return;
+      obj.mesh.userData.collected = true;
+      this.scene.remove(obj.mesh);
+      this.inventory.addItem(itemId);
+      this.audio.playPickup();
+      // 移除碰撞
+      const idx = this.interactables.indexOf(obj);
+      if (idx > -1) this.interactables.splice(idx, 1);
+      // 特殊物品提示
+      if (itemId === 'flashlight') {
+        this._showAreaName('Flashlight acquired — Press F');
+      }
+    } else if (obj.type === 'door') {
+      const door = obj.door;
+      if (door.userData.locked) {
+        const requiredCard = door.userData.color + '_keycard';
+        if (this.inventory.hasItem(requiredCard)) {
+          this.audio.playCreak();
+          door.userData.locked = false;
+          door.userData.openAmount = 1;
+          this.inventory.removeItem(requiredCard);
+          this.audio.playPickup();
+        } else {
+          // 门锁住的反馈
+          this.audio.playBang();
+        }
+      }
+    } else if (obj.type === 'keypad_door') {
+      if (obj.door.userData.locked) {
+        this._openKeypad();
+      }
+    } else if (obj.type === 'hidden_door') {
+      const door = obj.door;
+      if (door.userData.locked) {
+        if (this.inventory.hasItem('wrench')) {
+          door.userData.locked = false;
+          door.userData.openAmount = 1;
+          door.material = this.materials.door.clone();
+          this.inventory.removeItem('wrench');
+          this.audio.playCreak();
+          this.audio.playPickup();
+        } else {
+          this.audio.playBang();
+        }
+      }
+    }
+  }
+
+  // ============================================
+  // 游戏开始
+  // ============================================
+  _startGame() {
+    document.getElementById('title-screen').style.display = 'none';
+    document.getElementById('hud').classList.add('active');
+    document.getElementById('vhs-overlay').classList.add('active');
+    this.running = true;
+    this.audio.init();
+    this.audio.resume();
+    this.audio.startDrone();
+    this.renderer.domElement.requestPointerLock();
+
+    // 初始区域提示
+    setTimeout(() => this._showAreaName(this.areaNames.entrance), 1500);
+
+    // 开始恐怖事件计时器
+    this._scheduleHorrorEvents();
+
+    // 游戏循环
+    this._gameLoop();
+  }
+
+  _showAreaName(text) {
+    const el = document.getElementById('area-name');
+    el.textContent = text;
+    el.classList.add('visible');
+    setTimeout(() => el.classList.remove('visible'), 4000);
+  }
+
+  // ============================================
+  // 恐怖事件调度
+  // ============================================
+  _scheduleHorrorEvents() {
+    // 耳语
+    this.horrorTimers.whisper = 8 + Math.random() * 12;
+    // 突发巨响
+    this.horrorTimers.bang = 15 + Math.random() * 20;
+    // 门的吱呀声
+    this.horrorTimers.creak = 10 + Math.random() * 15;
+    // 物体移动
+    this.horrorTimers.moveObj = 20 + Math.random() * 30;
+  }
+
+  _updateHorrorEvents(dt) {
+    this.horrorTimers.whisper -= dt;
+    if (this.horrorTimers.whisper <= 0) {
+      this.audio.playWhisper();
+      this.horrorTimers.whisper = 12 + Math.random() * 20;
+      this.sanity = Math.max(0, this.sanity - 2);
+    }
+
+    this.horrorTimers.bang -= dt;
+    if (this.horrorTimers.bang <= 0) {
+      this.audio.playBang();
+      this.horrorTimers.bang = 20 + Math.random() * 30;
+      // VHS 闪屏
+      this.vhsIntensity = 0.15;
+      this.sanity = Math.max(0, this.sanity - 5);
+    }
+
+    this.horrorTimers.creak -= dt;
+    if (this.horrorTimers.creak <= 0) {
+      this.audio.playCreak();
+      this.horrorTimers.creak = 15 + Math.random() * 20;
+    }
+
+    this.horrorTimers.moveObj -= dt;
+    if (this.horrorTimers.moveObj <= 0) {
+      this._moveObjectWhenNotLooking();
+      this.horrorTimers.moveObj = 25 + Math.random() * 35;
+      this.sanity = Math.max(0, this.sanity - 3);
+    }
+
+    // VHS 恢复
+    this.vhsIntensity = Math.max(0.02, this.vhsIntensity - dt * 0.05);
+    const vhsOverlay = document.getElementById('vhs-overlay');
+    vhsOverlay.style.opacity = this.vhsIntensity;
+
+    // 危险等级（基于与实体距离）
+    const distToEntity = this.playerPos.distanceTo(this.entity.position);
+    this.dangerLevel = this.entityActive ? Math.max(0, 1 - distToEntity / 15) : 0;
+    document.getElementById('danger-vignette').classList.toggle('active', this.dangerLevel > 0.3);
+    this.audio.setDangerLevel(this.dangerLevel);
+
+    // 理智值恢复（远离实体时）
+    if (this.dangerLevel < 0.2) {
+      this.sanity = Math.min(100, this.sanity + dt * 0.5);
+    }
+  }
+
+  _moveObjectWhenNotLooking() {
+    // 找小丑雕像并微微移动
+    const clown = this.interactables.find(i => i.type === 'clown_statue');
+    if (!clown) return;
+    const clownPos = clown.mesh.position;
+    const toPlayer = new THREE.Vector3().subVectors(this.playerPos, clownPos);
+    const playerFwd = new THREE.Vector3(0, 0, -1).applyQuaternion(this.camera.quaternion);
+    // 如果玩家没看小丑方向
+    if (toPlayer.dot(playerFwd) < 0) {
+      const dx = (Math.random() - 0.5) * 0.5;
+      const dz = (Math.random() - 0.5) * 0.5;
+      clown.mesh.position.x += dx;
+      clown.mesh.position.z += dz;
+      // 旋转面向玩家
+      clown.mesh.lookAt(this.playerPos.x, clown.mesh.position.y, this.playerPos.z);
+    }
+  }
+
+  // ============================================
+  // AI 更新
+  // ============================================
+  _updateEntity(dt) {
+    // 在玩家进入维护区域后激活
+    const inMaintZone = this.playerPos.z > 22 && this.playerPos.z < 40 &&
+                        this.playerPos.x > 2 && this.playerPos.x < 10;
+    if (!this.entityActive && inMaintZone) {
+      this.entityActive = true;
+      this.entity.visible = true;
+      this._showAreaName('Something is watching...');
+    }
+    if (!this.entityActive) return;
+
+    // 检查玩家是否在看实体
+    const toEntity = new THREE.Vector3().subVectors(this.entity.position, this.playerPos).normalize();
+    const playerFwd = new THREE.Vector3(0, 0, -1).applyQuaternion(this.camera.quaternion);
+    const playerLooking = toEntity.dot(playerFwd) > 0.7;
+
+    if (playerLooking) {
+      this.lastEntitySeen = this.clock.elapsedTime;
+      // 实体不动
+      this.entity.lookAt(this.playerPos.x, this.entity.position.y, this.playerPos.z);
+    } else {
+      // 移向玩家（延迟）
+      const timeSinceSeen = this.clock.elapsedTime - this.lastEntitySeen;
+      if (timeSinceSeen > 1.5) {
+        const dir = new THREE.Vector3().subVectors(this.playerPos, this.entity.position);
+        dir.y = 0;
+        const dist = dir.length();
+        if (dist > 2) {
+          dir.normalize();
+          const speed = this.entitySpeed * Math.min(timeSinceSeen / 3, 1);
+          this.entity.position.add(dir.multiplyScalar(speed * dt));
+          this.entity.lookAt(this.playerPos.x, this.entity.position.y, this.playerPos.z);
         }
       }
     }
 
-    // Chase if very close and player not looking
-    if(dist < 6 && !enemy.canSeePlayer) {
-      enemy.state = 'chasing';
-      enemy.speed = 3;
-      setDroneIntensity(0.12);
-    }
-
-    // Random sounds
-    enemy.soundTimer -= dt;
-    if(enemy.soundTimer <= 0) {
-      enemy.soundTimer = 5 + Math.random()*10;
-      if(dist < 10) playWhisper();
+    // 跳吓触发
+    const distToPlayer = this.entity.position.distanceTo(this.playerPos);
+    if (distToPlayer < 1.5 && !playerLooking) {
+      this._triggerJumpscare();
     }
   }
 
-  if(enemy.state === 'chasing') {
-    const toPlayer = new THREE.Vector3().subVectors(pp, ep);
-    toPlayer.y = 0;
-    const len = toPlayer.length();
-    if(len > 0.5) {
-      toPlayer.normalize().multiplyScalar(enemy.speed * dt);
-      const newX = ep.x + toPlayer.x;
-      const newZ = ep.z + toPlayer.z;
-      if(!checkCol(newX, newZ)) {
-        ep.x = newX; ep.z = newZ;
-      }
+  _triggerJumpscare() {
+    if (this._jumpscareActive) return;
+    this._jumpscareActive = true;
+    this.audio.playScream();
+    this.vhsIntensity = 0.4;
+
+    const scareEl = document.getElementById('jumpscare');
+    const scareCanvas = document.getElementById('scare-canvas');
+    scareCanvas.width = window.innerWidth;
+    scareCanvas.height = window.innerHeight;
+    const sctx = scareCanvas.getContext('2d');
+
+    // 画恐怖脸
+    sctx.fillStyle = '#000';
+    sctx.fillRect(0, 0, scareCanvas.width, scareCanvas.height);
+    const cx = scareCanvas.width / 2, cy = scareCanvas.height / 2;
+    // 脸
+    sctx.fillStyle = '#1a0a0a';
+    sctx.beginPath();
+    sctx.ellipse(cx, cy, 150, 200, 0, 0, Math.PI * 2);
+    sctx.fill();
+    // 眼睛
+    sctx.fillStyle = '#ff0000';
+    sctx.shadowColor = '#ff0000';
+    sctx.shadowBlur = 30;
+    sctx.beginPath();
+    sctx.ellipse(cx - 50, cy - 30, 20, 35, 0, 0, Math.PI * 2);
+    sctx.fill();
+    sctx.beginPath();
+    sctx.ellipse(cx + 50, cy - 30, 20, 35, 0, 0, Math.PI * 2);
+    sctx.fill();
+    // 瞳孔
+    sctx.fillStyle = '#000';
+    sctx.shadowBlur = 0;
+    sctx.beginPath();
+    sctx.arc(cx - 50, cy - 25, 8, 0, Math.PI * 2);
+    sctx.fill();
+    sctx.beginPath();
+    sctx.arc(cx + 50, cy - 25, 8, 0, Math.PI * 2);
+    sctx.fill();
+    // 嘴
+    sctx.strokeStyle = '#ff0000';
+    sctx.lineWidth = 4;
+    sctx.beginPath();
+    sctx.ellipse(cx, cy + 60, 60, 80, 0, 0, Math.PI);
+    sctx.stroke();
+    // 牙齿
+    for (let i = -40; i <= 40; i += 15) {
+      sctx.fillStyle = '#ddddaa';
+      sctx.fillRect(cx + i - 5, cy + 60, 10, 20);
     }
 
-    // If player looks at enemy, slow down
-    if(enemy.canSeePlayer && dist < 5) {
-      enemy.speed = 0.5;
-      setDroneIntensity(0.08);
+    scareEl.classList.add('active');
+
+    // 传送到远处
+    setTimeout(() => {
+      this.entity.position.set(6, 1.5, 30);
+      this.lastEntitySeen = this.clock.elapsedTime;
+      scareEl.classList.remove('active');
+      this.sanity = Math.max(0, this.sanity - 30);
+      this._jumpscareActive = false;
+    }, 1200);
+  }
+
+  // ============================================
+  // 玩家更新
+  // ============================================
+  _updatePlayer(dt) {
+    // 移动方向
+    const forward = new THREE.Vector3(0, 0, -1);
+    forward.applyAxisAngle(new THREE.Vector3(0, 1, 0), this.yaw);
+    const right = new THREE.Vector3(1, 0, 0);
+    right.applyAxisAngle(new THREE.Vector3(0, 1, 0), this.yaw);
+
+    const moveDir = new THREE.Vector3();
+    if (this.keys['KeyW']) moveDir.add(forward);
+    if (this.keys['KeyS']) moveDir.sub(forward);
+    if (this.keys['KeyD']) moveDir.add(right);
+    if (this.keys['KeyA']) moveDir.sub(right);
+
+    this.isMoving = moveDir.length() > 0.01;
+    this.isSprinting = this.keys['ShiftLeft'] && this.isMoving && this.stamina > 0;
+    this.isCrouching = this.keys['ControlLeft'] || this.keys['ControlRight'];
+
+    if (this.isMoving) moveDir.normalize();
+
+    let speed = MOVE_SPEED;
+    if (this.isSprinting) speed = SPRINT_SPEED;
+    if (this.isCrouching) speed = CROUCH_SPEED;
+
+    // 蹲伏
+    const targetHeight = this.isCrouching ? CROUCH_HEIGHT : PLAYER_HEIGHT;
+    this.currentHeight += (targetHeight - this.currentHeight) * dt * 8;
+
+    // 体力
+    if (this.isSprinting) {
+      this.stamina = Math.max(0, this.stamina - 20 * dt);
     } else {
-      enemy.speed = 3;
-      setDroneIntensity(0.15);
+      this.stamina = Math.min(100, this.stamina + 10 * dt);
     }
 
-    if(enemy.canSeePlayer && dist > 8) {
-      enemy.state = 'stalking';
-      enemy.speed = 1.5;
-      setDroneIntensity(0.06);
+    // 头部晃动
+    if (this.isMoving) {
+      const bobSpeed = this.isSprinting ? BOB_SPEED * 1.3 : BOB_SPEED;
+      this.bobPhase += dt * bobSpeed;
+    } else {
+      this.bobPhase *= 0.9;
     }
-  }
+    const bobY = Math.sin(this.bobPhase) * BOB_AMOUNT * (this.isSprinting ? 1.5 : 1);
+    const bobX = Math.cos(this.bobPhase * 0.5) * BOB_AMOUNT * 0.5;
 
-  // Face player
-  enemy.mesh.lookAt(pp.x, 0, pp.z);
-  enemy.mesh.position.copy(enemy.pos);
-
-  // Danger overlay
-  const dangerDist = Math.max(0, 1 - dist/10);
-  document.getElementById('danger-overlay').style.opacity = enemy.state==='chasing' ? dangerDist*0.8 : dangerDist*0.3;
-}
-
-// ============================================================
-// JUMPSCARE SYSTEM
-// ============================================================
-function triggerJumpscare() {
-  if(S.over) return;
-  S.over = true;
-  S.jumpscareTime = S.time;
-  controls.unlock();
-  playJumpscareSound();
-
-  const js = document.getElementById('jumpscare');
-  const jc = document.getElementById('jumpscare-canvas');
-  jc.width = window.innerWidth;
-  jc.height = window.innerHeight;
-  js.classList.add('show');
-
-  const ctx = jc.getContext('2d');
-  // Draw scary face
-  ctx.fillStyle = '#000';
-  ctx.fillRect(0,0,jc.width,jc.height);
-
-  const cx = jc.width/2, cy = jc.height/2;
-  // Face shape
-  ctx.fillStyle = '#1a0808';
-  ctx.beginPath();
-  ctx.ellipse(cx, cy, 180, 250, 0, 0, Math.PI*2);
-  ctx.fill();
-  // Eyes - large, red, empty
-  ctx.fillStyle = '#ff0000';
-  ctx.shadowColor = '#ff0000';
-  ctx.shadowBlur = 40;
-  ctx.beginPath();
-  ctx.ellipse(cx-60, cy-50, 35, 25, -0.2, 0, Math.PI*2);
-  ctx.fill();
-  ctx.beginPath();
-  ctx.ellipse(cx+60, cy-50, 35, 25, 0.2, 0, Math.PI*2);
-  ctx.fill();
-  // Pupils
-  ctx.fillStyle = '#000';
-  ctx.shadowBlur = 0;
-  ctx.beginPath();
-  ctx.arc(cx-60, cy-50, 12, 0, Math.PI*2);
-  ctx.fill();
-  ctx.beginPath();
-  ctx.arc(cx+60, cy-50, 12, 0, Math.PI*2);
-  ctx.fill();
-  // Mouth - wide grin
-  ctx.fillStyle = '#220000';
-  ctx.beginPath();
-  ctx.ellipse(cx, cy+80, 100, 50, 0, 0, Math.PI);
-  ctx.fill();
-  // Teeth
-  ctx.fillStyle = '#ddd8c8';
-  for(let i=-80;i<80;i+=20) {
-    ctx.fillRect(cx+i, cy+80, 12, 18);
-  }
-  // Cracks
-  ctx.strokeStyle = '#331111';
-  ctx.lineWidth = 2;
-  for(let i=0;i<8;i++) {
-    ctx.beginPath();
-    ctx.moveTo(cx+Math.random()*300-150, cy+Math.random()*400-200);
-    ctx.lineTo(cx+Math.random()*300-150, cy+Math.random()*400-200);
-    ctx.stroke();
-  }
-
-  // Shake effect
-  let shakeCount = 0;
-  const shakeInterval = setInterval(()=>{
-    jc.style.transform = `translate(${(Math.random()-0.5)*20}px,${(Math.random()-0.5)*20}px)`;
-    shakeCount++;
-    if(shakeCount>15) {
-      clearInterval(shakeInterval);
-      jc.style.transform = '';
+    // 低体力时呼吸动画
+    let breathOffset = 0;
+    if (this.stamina < 20 && this.isSprinting) {
+      breathOffset = Math.sin(this.clock.elapsedTime * 4) * 0.03;
     }
-  },50);
 
-  setTimeout(()=>{
-    js.classList.remove('show');
-    document.getElementById('game-over').classList.add('show');
-  }, 1500);
-}
+    // 应用移动
+    const newPos = this.playerPos.clone().add(moveDir.multiplyScalar(speed * dt));
 
-// ============================================================
-// PARTICLE SYSTEM (Dust motes)
-// ============================================================
-let particleSystem = null;
-
-function createParticles() {
-  const count = 300;
-  const geo = new THREE.BufferGeometry();
-  const positions = new Float32Array(count*3);
-  for(let i=0;i<count;i++){
-    positions[i*3] = (Math.random()-0.5)*20;
-    positions[i*3+1] = Math.random()*WALL_H;
-    positions[i*3+2] = (Math.random()-0.5)*30;
-  }
-  geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-
-  const mat = new THREE.PointsMaterial({
-    color: 0x887766,
-    size: 0.02,
-    transparent: true,
-    opacity: 0.3,
-    sizeAttenuation: true
-  });
-
-  particleSystem = new THREE.Points(geo, mat);
-  scene.add(particleSystem);
-}
-
-function updateParticles(dt) {
-  if(!particleSystem) return;
-  const pos = particleSystem.geometry.attributes.position.array;
-  for(let i=0;i<pos.length;i+=3){
-    pos[i] += Math.sin(S.time*0.3+i)*0.002;
-    pos[i+1] += Math.sin(S.time*0.5+i*0.7)*0.001;
-    pos[i+2] += Math.cos(S.time*0.4+i*0.5)*0.002;
-    // Keep near player
-    const dx = pos[i]-camera.position.x;
-    const dz = pos[i+2]-camera.position.z;
-    if(Math.abs(dx)>12) pos[i] = camera.position.x+(Math.random()-0.5)*10;
-    if(Math.abs(dz)>15) pos[i+2] = camera.position.z+(Math.random()-0.5)*12;
-  }
-  particleSystem.geometry.attributes.position.needsUpdate = true;
-}
-
-// ============================================================
-// VHS NOISE EFFECT
-// ============================================================
-const vhsNoiseCanvas = document.getElementById('vhs-noise');
-const vhsCtx = vhsNoiseCanvas.getContext('2d');
-
-function updateVHSNoise() {
-  if(Math.random()>0.15) { vhsNoiseCanvas.style.opacity='0'; return; }
-  vhsNoiseCanvas.style.opacity = String(0.03+Math.random()*0.06);
-  const imgData = vhsCtx.createImageData(320,180);
-  for(let i=0;i<imgData.data.length;i+=4){
-    const v = Math.random()*255;
-    imgData.data[i]=v; imgData.data[i+1]=v; imgData.data[i+2]=v; imgData.data[i+3]=255;
-  }
-  vhsCtx.putImageData(imgData,0,0);
-}
-
-// ============================================================
-// UI HELPERS
-// ============================================================
-function showToast(msg, dur=2000) {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'), dur);
-}
-
-function showHint(msg, dur=4000) {
-  const h = document.getElementById('hint');
-  h.textContent = msg;
-  h.classList.add('show');
-  setTimeout(()=>h.classList.remove('show'), dur);
-}
-
-function showAreaLabel(name) {
-  if(S.area === name) return;
-  S.area = name;
-  const el = document.getElementById('area-label');
-  el.textContent = name;
-  el.classList.add('show');
-  setTimeout(()=>el.classList.remove('show'), 3000);
-}
-
-function showNote(title, text) {
-  S.noteOpen = true;
-  document.getElementById('note-title').textContent = title;
-  document.getElementById('note-text').textContent = text;
-  document.getElementById('note-ui').classList.add('show');
-  controls.unlock();
-}
-
-function hideNote() {
-  S.noteOpen = false;
-  document.getElementById('note-ui').classList.remove('show');
-  controls.lock();
-}
-
-function showCodeUI() {
-  S.codeOpen = true;
-  S.code = '';
-  updateCodeDisplay();
-  document.getElementById('code-error').textContent = '';
-  document.getElementById('code-ui').classList.add('show');
-  controls.unlock();
-}
-
-function hideCodeUI() {
-  S.codeOpen = false;
-  document.getElementById('code-ui').classList.remove('show');
-  controls.lock();
-}
-
-function updateCodeDisplay() {
-  for(let i=0;i<4;i++){
-    document.getElementById('cd'+i).textContent = S.code[i] || '_';
-  }
-}
-
-function updateInventoryUI() {
-  const bar = document.getElementById('inventory-bar');
-  bar.innerHTML = '';
-  for(let i=0;i<5;i++){
-    const slot = document.createElement('div');
-    slot.className = 'inv-slot' + (S.inv[i]?' has-item':'') + (i===S.selSlot?' selected':'');
-    slot.innerHTML = `<span class="slot-key">${i+1}</span>`;
-    if(S.inv[i]) {
-      const icon = getIcon(S.inv[i]);
-      slot.innerHTML += icon;
-      const label = document.createElement('span');
-      label.className = 'item-label';
-      label.textContent = S.inv[i].name;
-      slot.appendChild(label);
-    }
-    slot.addEventListener('click', ()=>{
-      S.selSlot = i;
-      updateInventoryUI();
-    });
-    bar.appendChild(slot);
-  }
-}
-
-function getIcon(item) {
-  switch(item.type) {
-    case 'keycard': return `<i class="fas fa-id-card" style="color:${item.color==='blue'?'#2255cc':'#cc2222'}"></i>`;
-    case 'battery': return '<i class="fas fa-battery-full" style="color:#22cc44"></i>';
-    case 'note': return '<i class="fas fa-file-alt" style="color:#aa8855"></i>';
-    default: return '';
-  }
-}
-
-function addToInventory(item) {
-  for(let i=0;i<5;i++){
-    if(!S.inv[i]){
-      S.inv[i] = item;
-      updateInventoryUI();
-      return true;
-    }
-  }
-  showToast('Inventory full!');
-  return false;
-}
-
-function removeFromInventory(index) {
-  S.inv[index] = null;
-  updateInventoryUI();
-}
-
-// ============================================================
-// INVENTORY & INTERACTION LOGIC
-// ============================================================
-function tryInteract() {
-  if(!currentInteract) return;
-  const {type, data, id} = currentInteract;
-
-  switch(type) {
-    case 'flashlight':
-      if(!S.hasFlashlight) {
-        S.hasFlashlight = true;
-        flashlight.visible = true;
-        document.getElementById('battery-bar').classList.add('show');
-        document.getElementById('flashlight-icon').classList.add('show');
-        updateFlashlightIcon();
-        playPickup();
-        showToast('Flashlight acquired');
-        removeInteract(id);
-        showHint('Press [F] to toggle flashlight', 3000);
-      }
-      break;
-
-    case 'note':
-      if(!S.notesCollected.has(id)) {
-        S.notesCollected.add(id);
-        playPickup();
-        showNote(data.title, data.text);
-      }
-      break;
-
-    case 'keycard':
-      playPickup();
-      const added = addToInventory({type:'keycard', color:data.color, name:`${data.color.toUpperCase()} Keycard`});
-      if(added) {
-        showToast(`${data.color.toUpperCase()} keycard acquired`);
-        removeInteract(id);
-        currentInteract.mesh.visible = false;
-      }
-      break;
-
-    case 'door':
-      if(data.color === 'blue' && S.blueDoorOpen) break;
-      if(data.color === 'red' && S.redDoorOpen) break;
-      // Check inventory
-      const slot = S.inv.findIndex(i=>i && i.type==='keycard' && i.color===data.color);
-      if(slot >= 0) {
-        removeFromInventory(slot);
-        playDoorCreak();
-        showToast(`${data.color.toUpperCase()} door unlocked`);
-        if(data.color==='blue') S.blueDoorOpen = true;
-        if(data.color==='red') S.redDoorOpen = true;
-        // Animate door
-        animDoors.push({mesh:data.mesh, progress:0, dir:data.color==='blue'?1:-1, axis:'z', open:true});
-        removeInteract(id);
-      } else {
-        playError();
-        showToast(`Requires ${data.color.toUpperCase()} keycard`);
-      }
-      break;
-
-    case 'code':
-      showCodeUI();
-      break;
-
-    case 'lever':
-      const idx = data.index;
-      // Correct order: 0, 2, 1 (left, right, middle)
-      const correctOrder = [0, 2, 1];
-      const currentStep = S.levers.filter(l=>l).length;
-
-      if(S.levers[idx]) {
-        showToast('Already activated');
+    // 简单碰撞检测
+    const playerRadius = 0.3;
+    let blocked = false;
+    for (const obj of this.interactables) {
+      if (obj.type === 'pickup' || !obj.bounds) continue;
+      const expanded = obj.bounds.clone().expandByScalar(playerRadius);
+      if (expanded.containsPoint(new THREE.Vector3(newPos.x, this.currentHeight / 2, newPos.z))) {
+        // 检查是否门已开
+        if ((obj.type === 'door' || obj.type === 'keypad_door' || obj.type === 'hidden_door') && obj.door.userData.openAmount > 0) {
+          continue;
+        }
+        blocked = true;
         break;
       }
+    }
 
-      if(correctOrder[currentStep] === idx) {
-        S.levers[idx] = true;
-        data.handle.rotation.x = -Math.PI/3;
-        data.indicator.material.color.set(0x00ff44);
-        data.indicator.material.emissive.set(0x00ff44);
-        data.indicator.material.emissiveIntensity = 1;
-        playTone(440+idx*110, 0.2, 0.1);
-        showToast(`Lever ${idx+1} activated`);
+    if (!blocked) {
+      this.playerPos.copy(newPos);
+    }
 
-        if(S.levers.every(l=>l)) {
-          // All levers correct - open mirror maze path
-          setTimeout(()=>{
-            playSuccess();
-            showToast('Mirror maze passage revealed');
-            // Make mirror walls visible
-            scene.children.forEach(c => {
-              if(c.material === matMirror) c.visible = true;
-            });
-            // Add colliders for mirror walls
-            // We'll handle this differently - just let the mirrors be visual
-          }, 500);
-        }
+    // 更新相机
+    this.camera.position.set(
+      this.playerPos.x + bobX,
+      this.currentHeight - EYE_OFFSET + bobY + breathOffset,
+      this.playerPos.z
+    );
+    this.camera.rotation.order = 'YXZ';
+    this.camera.rotation.y = this.yaw;
+    this.camera.rotation.x = this.pitch;
+
+    // 脚步声
+    if (this.isMoving) {
+      this.footstepTimer -= dt;
+      if (this.footstepTimer <= 0) {
+        this.audio.playFootstep();
+        this.footstepTimer = this.isSprinting ? 0.3 : 0.45;
+      }
+    } else {
+      this.footstepTimer = 0;
+    }
+
+    // 手电筒电池
+    if (this.flashlightOn) {
+      this.battery = Math.max(0, this.battery - BATTERY_DRAIN * dt);
+      if (this.battery <= 0) {
+        this.flashlightOn = false;
+        this.flashlight.visible = false;
+        this.flashlightCone.visible = false;
+      }
+      // 低电量闪烁
+      if (this.battery < 20) {
+        const flicker = Math.random() < (1 - this.battery / 20) * 0.3;
+        this.flashlight.intensity = flicker ? 0.1 : 2 * (this.battery / 100 + 0.5);
+        this.flashlightCone.material.opacity = flicker ? 0 : 0.02;
       } else {
-        // Wrong order - reset all
-        S.levers = [false,false,false];
-        animLevers.forEach(al => {
-          al.handle.rotation.x = 0;
-          const ind = interactables.find(i=>i.id===`lever_${al.index}`);
-          if(ind && ind.data.indicator) {
-            ind.data.indicator.material.color.set(0x331111);
-            ind.data.indicator.material.emissive.set(0x220000);
-            ind.data.indicator.material.emissiveIntensity = 0.3;
-          }
-        });
-        playError();
-        showToast('Wrong order! Levers reset.');
-        S.sanity = Math.max(0, S.sanity - 5);
+        this.flashlight.intensity = 2;
+        this.flashlightCone.material.opacity = 0.02;
       }
-      break;
+    }
 
-    case 'chapter_end':
-      if(!S.chapterEnd) {
-        S.chapterEnd = true;
-        controls.unlock();
-        document.getElementById('chapter-end').classList.add('show');
+    // 区域检测
+    this._detectArea();
+
+    // 更新互动提示
+    this._updateInteraction();
+
+    // 更新 HUD
+    this._updateHUD();
+  }
+
+  _detectArea() {
+    let area = '';
+    const p = this.playerPos;
+    if (p.z >= 0 && p.z < 8 && p.x >= 0 && p.x < 4) area = 'entrance';
+    else if (p.z >= 8 && p.z < 20 && p.x >= 0 && p.x < 12) area = 'main_hall';
+    else if (p.z >= 8 && p.z < 20 && p.x >= 12 && p.x < 24) area = 'mirror_maze';
+    else if (p.z >= 20 && p.z < 24 && p.x >= 4 && p.x < 8) area = 'maint_start';
+    else if (p.z >= 24 && p.z < 36 && p.x >= 4 && p.x < 8) area = 'maint_tunnel';
+    else if (p.z >= 36 && p.z < 42 && p.x >= 4 && p.x < 8) area = 'secret_room';
+
+    if (area !== this.currentArea) {
+      this.currentArea = area;
+      if (this.areaNames[area]) {
+        this._showAreaName(this.areaNames[area]);
       }
-      break;
-  }
-}
-
-// ============================================================
-// CODE PUZZLE SETUP
-// ============================================================
-function setupCodeUI() {
-  const btns = document.getElementById('code-buttons');
-  for(let i=1;i<=9;i++){
-    const b = document.createElement('button');
-    b.className = 'code-btn';
-    b.textContent = i;
-    b.addEventListener('click', ()=>codeInput(String(i)));
-    btns.appendChild(b);
-  }
-  const b0 = document.createElement('button');
-  b0.className = 'code-btn';
-  b0.textContent = '0';
-  b0.addEventListener('click', ()=>codeInput('0'));
-  btns.appendChild(b0);
-  const bClear = document.createElement('button');
-  bClear.className = 'code-btn';
-  bClear.textContent = 'CLR';
-  bClear.addEventListener('click', ()=>{ S.code=''; updateCodeDisplay(); });
-  btns.appendChild(bClear);
-
-  document.getElementById('code-submit').addEventListener('click', codeSubmit);
-}
-
-function codeInput(digit) {
-  if(S.code.length < 4) {
-    S.code += digit;
-    updateCodeDisplay();
-    playTone(300+parseInt(digit)*50, 0.08, 0.05);
-  }
-}
-
-function codeSubmit() {
-  if(S.code.length !== 4) {
-    document.getElementById('code-error').textContent = 'Enter 4 digits';
-    return;
-  }
-  if(S.code === S.codeTarget) {
-    playSuccess();
-    showToast('Access granted');
-    hideCodeUI();
-    // Open red door
-    S.redDoorOpen = true;
-    const redDoorInteract = interactables.find(i=>i.id==='red_door');
-    if(redDoorInteract) {
-      animDoors.push({mesh:redDoorInteract.data.mesh, progress:0, dir:-1, axis:'z', open:true});
-      removeInteract('red_door');
-    }
-    // Remove code panel
-    removeInteract('code_panel');
-  } else {
-    playError();
-    document.getElementById('code-error').textContent = 'ACCESS DENIED';
-    S.code = '';
-    updateCodeDisplay();
-    S.sanity = Math.max(0, S.sanity - 3);
-    setTimeout(()=>document.getElementById('code-error').textContent='', 2000);
-  }
-}
-
-// ============================================================
-// FLASHLIGHT HELPERS
-// ============================================================
-function updateFlashlightIcon() {
-  const icon = document.getElementById('flashlight-icon');
-  icon.classList.toggle('on', S.flashOn);
-  icon.classList.toggle('off', !S.flashOn);
-}
-
-function updateFlashlight(dt) {
-  if(!S.hasFlashlight || !flashlight) return;
-
-  // Battery drain
-  if(S.flashOn) {
-    S.battery = Math.max(0, S.battery - BATT_DRAIN * dt);
-    if(S.battery <= 0) {
-      S.flashOn = false;
-      flashlight.visible = false;
-      updateFlashlightIcon();
     }
   }
 
-  // Update battery UI
-  const fill = document.getElementById('battery-fill');
-  fill.style.width = S.battery + '%';
-  fill.classList.toggle('low', S.battery < 30);
-  fill.classList.toggle('critical', S.battery < 15);
+  _updateInteraction() {
+    const prompt = document.getElementById('interact-prompt');
+    this.currentInteractable = null;
 
-  // Flicker when low
-  if(S.flashOn && S.battery < 20) {
-    const flickerChance = (20 - S.battery) / 200;
-    if(Math.random() < flickerChance) {
-      flashlight.visible = false;
-      setTimeout(()=>{ if(S.flashOn) flashlight.visible = true; }, 50 + Math.random()*100);
-    }
-  }
+    for (const obj of this.interactables) {
+      if (obj.type === 'wall' || obj.type === 'prop') continue;
+      if (obj.type === 'pickup' && obj.mesh.userData.collected) continue;
 
-  // Update target position
-  const dir = new THREE.Vector3();
-  camera.getWorldDirection(dir);
-  flashlightTarget.position.copy(camera.position).add(dir.multiplyScalar(10));
-}
+      const dist = this.playerPos.distanceTo(
+        obj.type === 'pickup' ? obj.mesh.position : obj.mesh.position
+      );
 
-// ============================================================
-// PLAYER MOVEMENT
-// ============================================================
-const velocity = new THREE.Vector3();
-let bobPhase = 0;
-let breathPhase = 0;
-let footstepTimer = 0;
+      if (dist < INTERACT_DIST) {
+        this.currentInteractable = obj;
+        let text = 'Press E';
+        if (obj.type === 'pickup') {
+          const item = ITEMS[obj.itemId];
+          text = `Press E — ${item ? item.name : 'Pick up'}`;
+        } else if (obj.type === 'door') {
+          text = obj.door.userData.locked ?
+            `Locked — ${obj.door.userData.color.toUpperCase()} Keycard needed` :
+            'Open';
+        } else if (obj.type === 'keypad_door') {
+          text = obj.door.userData.locked ? 'Press E — Use Keypad' : 'Open';
+        } else if (obj.type === 'hidden_door') {
+          text = obj.door.userData.locked ? 'Sealed — Need tool' : 'Open';
+        }
+        prompt.textContent = text;
+        prompt.classList.add('visible');
 
-function updatePlayer(dt) {
-  if(!controls.isLocked || S.paused || S.over || S.chapterEnd) return;
-
-  const speed = S.sprint ? SPRINT_SPD : (S.crouch ? CROUCH_SPD : MOVE_SPD);
-
-  // Direction
-  const forward = new THREE.Vector3();
-  camera.getWorldDirection(forward);
-  forward.y = 0; forward.normalize();
-  const right = new THREE.Vector3().crossVectors(forward, new THREE.Vector3(0,1,0)).normalize();
-
-  const moveDir = new THREE.Vector3();
-  if(S.move.f) moveDir.add(forward);
-  if(S.move.b) moveDir.sub(forward);
-  if(S.move.r) moveDir.add(right);
-  if(S.move.l) moveDir.sub(right);
-  const isMoving = moveDir.length() > 0;
-  if(isMoving) moveDir.normalize();
-
-  // Stamina
-  if(S.sprint && isMoving) {
-    S.stamina = Math.max(0, S.stamina - 20*dt);
-    if(S.stamina <= 0) S.sprint = false;
-  } else {
-    S.stamina = Math.min(100, S.stamina + 10*dt);
-  }
-  document.getElementById('stamina-fill').style.width = S.stamina + '%';
-
-  // Apply movement with collision
-  const dx = moveDir.x * speed * dt;
-  const dz = moveDir.z * speed * dt;
-  const px = camera.position.x;
-  const pz = camera.position.z;
-
-  if(!checkCol(px+dx, pz)) camera.position.x += dx;
-  if(!checkCol(camera.position.x, pz+dz)) camera.position.z += dz;
-
-  // Head bob
-  const targetEyeH = S.crouch ? CROUCH_H : EYE_H;
-  camera.position.y += (targetEyeH - camera.position.y) * 8 * dt;
-
-  if(isMoving) {
-    const bobSpeed = S.sprint ? BOB_SPD*1.3 : BOB_SPD;
-    bobPhase += dt * bobSpeed;
-    const bob = Math.sin(bobPhase) * BOB_AMT * (S.sprint?1.5:1);
-    camera.position.y += bob;
-
-    // Footsteps
-    footstepTimer -= dt;
-    if(footstepTimer <= 0) {
-      footstepTimer = S.sprint ? 0.3 : 0.45;
-      playNoise(0.08, S.crouch ? 0.02 : 0.04);
-    }
-  } else {
-    bobPhase = 0;
-  }
-
-  // Breathing when stamina low
-  if(S.stamina < 30) {
-    breathPhase += dt * 3;
-    const breath = Math.sin(breathPhase) * BREATH_AMT * (1 - S.stamina/30);
-    camera.position.y += breath;
-    if(breathPhase % 6 < 0.1) playNoise(0.3, 0.02);
-  }
-
-  // Sanity effects
-  if(S.sanity < 40) {
-    camera.rotation.z = Math.sin(S.time*2) * 0.005 * (1-S.sanity/40);
-  } else {
-    camera.rotation.z *= 0.95;
-  }
-  document.getElementById('sanity-fill').style.width = S.sanity + '%';
-
-  // Area detection
-  const px_ = camera.position.x, pz_ = camera.position.z;
-  if(pz_ < 10) showAreaLabel('ENTRANCE');
-  else if(pz_ < 30) showAreaLabel('MAIN HALL');
-  else if(pz_ < 48) showAreaLabel('MIRROR MAZE');
-  else if(px_ < -5) showAreaLabel('SECRET ROOM');
-}
-
-// ============================================================
-// INTERACTION RAYCAST
-// ============================================================
-const raycaster = new THREE.Raycaster();
-raycaster.far = INTERACT_DIST;
-
-function updateInteraction() {
-  if(!controls.isLocked || S.noteOpen || S.codeOpen) {
-    currentInteract = null;
-    document.getElementById('interact-prompt').classList.remove('show');
-    document.getElementById('crosshair').classList.remove('interact');
-    return;
-  }
-
-  raycaster.setFromCamera(new THREE.Vector2(0,0), camera);
-  const meshes = interactables.map(i=>i.mesh).filter(m=>m.visible);
-  const hits = raycaster.intersectObjects(meshes, true);
-
-  if(hits.length > 0) {
-    const hitMesh = hits[0].object;
-    const found = interactables.find(i=>i.mesh===hitMesh || i.mesh===hitMesh.parent);
-    if(found) {
-      currentInteract = found;
-      document.getElementById('interact-prompt').classList.add('show');
-      document.getElementById('crosshair').classList.add('interact');
-
-      // Update prompt text
-      let prompt = '[E] ';
-      switch(found.type) {
-        case 'flashlight': prompt += 'Pick up flashlight'; break;
-        case 'note': prompt += 'Read note'; break;
-        case 'keycard': prompt += `Pick up ${found.data.color} keycard`; break;
-        case 'door': prompt += `Use ${found.data.color} keycard`; break;
-        case 'code': prompt += 'Enter code'; break;
-        case 'lever': prompt += 'Pull lever'; break;
-        case 'chapter_end': prompt += 'Enter darkness...'; break;
-        default: prompt += 'Interact';
+        // 纸条特殊处理
+        if (obj.type === 'pickup' && obj.itemId.startsWith('note_') && NOTES[obj.itemId]) {
+          prompt.textContent = `Press E — Read ${ITEMS[obj.itemId].name}`;
+        }
+        return;
       }
-      document.getElementById('interact-prompt').textContent = prompt;
+    }
+    prompt.classList.remove('visible');
+  }
+
+  _updateHUD() {
+    // 电池
+    const battFill = document.getElementById('battery-fill');
+    battFill.style.width = this.battery + '%';
+    battFill.style.background = this.battery < 20 ? '#ff2222' : this.battery < 50 ? '#ffcc00' : '#00ff66';
+    const battIcon = document.querySelector('#battery-bar i');
+    battIcon.className = 'fas ' + (this.battery < 20 ? 'fa-battery-empty' : this.battery < 50 ? 'fa-battery-quarter' : 'fa-battery-full');
+
+    // 体力
+    document.getElementById('stamina-fill').style.width = this.stamina + '%';
+
+    // 理智
+    document.getElementById('sanity-fill').style.width = this.sanity + '%';
+  }
+
+  // ============================================
+  // 门动画更新
+  // ============================================
+  _updateDoors(dt) {
+    for (const door of this.doors) {
+      const ud = door.userData;
+      if (ud.openAmount > 0 && ud.openAmount < 1) {
+        ud.openAmount = Math.min(1, ud.openAmount + dt * 0.8);
+      }
+      if (ud.openAmount > 0) {
+        const offset = ud.openAmount * (ud.axis === 'z' ? ud.dir * 1.2 : ud.dir * 1.2);
+        if (ud.axis === 'z') {
+          door.position.x = door.position.x; // 保持原位但需要偏移
+          // 滑门效果
+          const origX = ud.type === 'keypad_door' ? 3 : ud.type === 'hidden_door' ? 6 :
+                        ud.color === 'red' ? 12 : 6;
+          const targetX = origX + offset;
+          door.position.x += (targetX - door.position.x) * dt * 5;
+        } else {
+          const origZ = ud.type === 'hidden_door' ? 36 : 20;
+          const targetZ = origZ + offset;
+          door.position.z += (targetZ - door.position.z) * dt * 5;
+        }
+      }
+    }
+  }
+
+  // ============================================
+  // 粒子更新
+  // ============================================
+  _updateParticles(dt) {
+    if (!this.dustParticles) return;
+    const positions = this.dustParticles.geometry.attributes.position.array;
+    const time = this.clock.elapsedTime;
+    for (let i = 0; i < positions.length; i += 3) {
+      positions[i] += Math.sin(time * 0.3 + i) * 0.001;
+      positions[i + 1] += Math.cos(time * 0.2 + i * 0.5) * 0.0005;
+      positions[i + 2] += Math.sin(time * 0.25 + i * 0.3) * 0.001;
+      // 边界循环
+      if (positions[i + 1] > 3.5) positions[i + 1] = 0;
+      if (positions[i + 1] < 0) positions[i + 1] = 3.5;
+    }
+    this.dustParticles.geometry.attributes.position.needsUpdate = true;
+  }
+
+  // ============================================
+  // 纸条查看处理
+  // ============================================
+  _handleNoteReading(itemId) {
+    const note = NOTES[itemId];
+    if (!note) return;
+    this.uiOpen = true;
+    document.exitPointerLock();
+    document.getElementById('note-title').textContent = note.title;
+    document.getElementById('note-body').textContent = note.body;
+    document.getElementById('note-modal').classList.add('active');
+  }
+
+  // 重写互动以处理纸条
+  _interact_original = null;
+
+  // ============================================
+  // 主游戏循环
+  // ============================================
+  _gameLoop() {
+    if (!this.running) return;
+    requestAnimationFrame(() => this._gameLoop());
+
+    const dt = Math.min(this.clock.getDelta(), 0.1);
+
+    if (this.paused || this.uiOpen) {
+      // 检查纸条读取
+      if (this.uiOpen && this.currentInteractable && this.currentInteractable.type === 'pickup' &&
+          this.currentInteractable.itemId.startsWith('note_') && NOTES[this.currentInteractable.itemId]) {
+        this._handleNoteReading(this.currentInteractable.itemId);
+        // 收集纸条
+        const itemId = this.currentInteractable.itemId;
+        this.currentInteractable.mesh.userData.collected = true;
+        this.scene.remove(this.currentInteractable.mesh);
+        const idx = this.interactables.indexOf(this.currentInteractable);
+        if (idx > -1) this.interactables.splice(idx, 1);
+        this.currentInteractable = null;
+      }
+      this.renderer.render(this.scene, this.camera);
       return;
     }
-  }
 
-  currentInteract = null;
-  document.getElementById('interact-prompt').classList.remove('show');
-  document.getElementById('crosshair').classList.remove('interact');
-}
+    this._updatePlayer(dt);
+    this._updateDoors(dt);
+    this._updateEntity(dt);
+    this._updateParticles(dt);
+    this._updateHorrorEvents(dt);
 
-// ============================================================
-// ANIMATIONS
-// ============================================================
-function updateAnimations(dt) {
-  // Door animations
-  for(let i=animDoors.length-1;i>=0;i--) {
-    const d = animDoors[i];
-    d.progress += dt * 0.8;
-    if(d.progress >= 1) {
-      d.progress = 1;
-      animDoors.splice(i,1);
-    }
-    const t = d.progress;
-    const ease = t<0.5 ? 2*t*t : 1-Math.pow(-2*t+2,2)/2;
-    if(d.axis === 'z') {
-      d.mesh.position.z += d.dir * ease * 0.02;
-    }
-  }
-
-  // Flickering lights
-  for(const l of flickerLights) {
-    if(!l.userData || l.userData.baseI === undefined) continue;
-    const {baseI, minI, speed, phase} = l.userData;
-    const flicker = Math.sin(S.time*speed+phase) * 0.5 + 0.5;
-    const randomFlicker = Math.random() > 0.97 ? Math.random()*0.5 : 0;
-    l.intensity = minI + (baseI - minI) * flicker - randomFlicker * baseI;
+    this.renderer.render(this.scene, this.camera);
   }
 }
 
-// ============================================================
-// PSYCHOLOGICAL HORROR EFFECTS
-// ============================================================
-let nextWhisper = 15;
-let nextObjectMove = 25;
-let nextScreenDistort = 40;
-
-function updateHorror(dt) {
-  if(S.over || S.chapterEnd) return;
-
-  // Random whispers
-  nextWhisper -= dt;
-  if(nextWhisper <= 0) {
-    nextWhisper = 10 + Math.random()*20;
-    playWhisper();
-  }
-
-  // Screen distortion when sanity low
-  if(S.sanity < 50) {
-    nextScreenDistort -= dt;
-    if(nextScreenDistort <= 0) {
-      nextScreenDistort = 3 + Math.random()*8;
-      vhsNoiseCanvas.style.opacity = String(0.05 + (1-S.sanity/50)*0.1);
-      setTimeout(()=>vhsNoiseCanvas.style.opacity='0', 200+Math.random()*300);
-    }
-  }
-
-  // Sanity slowly drains in dark
-  if(!S.flashOn || !S.hasFlashlight) {
-    S.sanity = Math.max(0, S.sanity - 0.5*dt);
-  } else {
-    S.sanity = Math.min(100, S.sanity + 0.1*dt);
-  }
-
-  // Heartbeat when enemy close
-  if(enemy && enemy.active) {
-    const dist = camera.position.distanceTo(enemy.pos);
-    if(dist < 8) {
-      nextHeartbeat -= dt;
-      if(nextHeartbeat <= 0) {
-        nextHeartbeat = Math.max(0.3, dist/4);
-        playHeartbeat();
-      }
-    }
-  }
-}
-let nextHeartbeat = 2;
-
-// ============================================================
-// INPUT HANDLING
-// ============================================================
-document.addEventListener('keydown', (e) => {
-  if(S.over && e.code !== 'Escape') return;
-  if(S.noteOpen) { if(e.code==='Escape') hideNote(); return; }
-  if(S.codeOpen) {
-    if(e.code==='Escape') hideCodeUI();
-    if(e.code>='Digit0'&&e.code<='Digit9') codeInput(e.code.replace('Digit',''));
-    if(e.code==='Backspace') { S.code=S.code.slice(0,-1); updateCodeDisplay(); }
-    if(e.code==='Enter') codeSubmit();
-    return;
-  }
-
-  switch(e.code) {
-    case 'KeyW': S.move.f=1; break;
-    case 'KeyS': S.move.b=1; break;
-    case 'KeyA': S.move.l=1; break;
-    case 'KeyD': S.move.r=1; break;
-    case 'ShiftLeft': case 'ShiftRight': S.sprint=true; break;
-    case 'ControlLeft': case 'ControlRight': S.crouch=true; e.preventDefault(); break;
-    case 'KeyF':
-      if(S.hasFlashlight) {
-        S.flashOn = !S.flashOn;
-        flashlight.visible = S.flashOn;
-        updateFlashlightIcon();
-        if(S.flashOn) playTone(800,0.05,0.03); else playTone(400,0.05,0.03);
-      }
-      break;
-    case 'KeyE': tryInteract(); break;
-    case 'Digit1': case 'Digit2': case 'Digit3': case 'Digit4': case 'Digit5':
-      S.selSlot = parseInt(e.code.replace('Digit',''))-1;
-      updateInventoryUI();
-      break;
-  }
-});
-
-document.addEventListener('keyup', (e) => {
-  switch(e.code) {
-    case 'KeyW': S.move.f=0; break;
-    case 'KeyS': S.move.b=0; break;
-    case 'KeyA': S.move.l=0; break;
-    case 'KeyD': S.move.r=0; break;
-    case 'ShiftLeft': case 'ShiftRight': S.sprint=false; break;
-    case 'ControlLeft': case 'ControlRight': S.crouch=false; break;
-  }
-});
-
-controls.addEventListener('lock', () => {
-  S.paused = false;
-});
-controls.addEventListener('unlock', () => {
-  if(!S.noteOpen && !S.codeOpen && !S.over && !S.chapterEnd) {
-    S.paused = true;
-  }
-});
-
-// ============================================================
-// GAME LOOP
-// ============================================================
-const clock = new THREE.Clock();
-
-function gameLoop() {
-  requestAnimationFrame(gameLoop);
-
-  const dt = Math.min(clock.getDelta(), 0.1);
-  S.time += dt;
-
-  if(!S.started) {
-    renderer.render(scene, camera);
-    return;
-  }
-
-  if(!S.paused && !S.over && !S.chapterEnd) {
-    updatePlayer(dt);
-    updateFlashlight(dt);
-    updateInteraction();
-    updateEnemy(dt);
-    updateHorror(dt);
-    updateParticles(dt);
-    updateAnimations(dt);
-    updateVHSNoise();
-  }
-
-  renderer.render(scene, camera);
-}
-
-// ============================================================
-// WINDOW RESIZE
-// ============================================================
-window.addEventListener('resize', () => {
-  camera.aspect = window.innerWidth / window.innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
-});
-
-// ============================================================
-// INITIALIZATION
-// ============================================================
-function init() {
-  createFlashlight();
-  buildWorld();
-  createParticles();
-  createEnemy();
-  setupCodeUI();
-  updateInventoryUI();
-
-  // Set player start
-  camera.position.set(0, EYE_H, 2);
-
-  // Start button
-  document.getElementById('title-start').addEventListener('click', () => {
-    initAudio();
-    startDrone();
-    S.started = true;
-    document.getElementById('title-screen').style.display = 'none';
-    controls.lock();
-  });
-
-  // Note close
-  document.getElementById('note-close').addEventListener('click', hideNote);
-
-  // Code close
-  document.getElementById('code-close').addEventListener('click', hideCodeUI);
-
-  gameLoop();
-}
-
-init();
-
+// ============================================
+// 初始化
+// ============================================
+const game = new Game();
+game.init();
 </script>
 </body>
 </html>
