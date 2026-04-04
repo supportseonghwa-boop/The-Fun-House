@@ -1,1719 +1,195 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Clash of Power: Anime Battle</title>
-<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;400;500;600;700&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
-<style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{background:#000;overflow:hidden;font-family:'Rajdhani',sans-serif;color:#fff;user-select:none}
-#game-canvas{position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:1}
-#ui-layer{position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:10;pointer-events:none}
-#ui-layer.interactive{pointer-events:all}
-#title-screen{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(ellipse at center,rgba(20,0,0,0.9) 0%,#000 70%);transition:opacity 0.8s}
-#title-screen.hidden{opacity:0;pointer-events:none}
-.title-line{height:2px;width:0;background:linear-gradient(90deg,transparent,#e63946,transparent);margin:12px 0;animation:lineExpand 1.5s 0.8s forwards}
-@keyframes lineExpand{to{width:400px}}
-.game-title{font-family:'Orbitron',monospace;font-size:clamp(28px,5vw,56px);font-weight:900;letter-spacing:4px;text-transform:uppercase;background:linear-gradient(135deg,#fff 0%,#e63946 50%,#8b0000 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-shadow:none;opacity:0;animation:fadeSlideUp 1s 0.3s forwards}
-.game-subtitle{font-size:clamp(14px,2vw,22px);color:#aaa;letter-spacing:8px;text-transform:uppercase;opacity:0;animation:fadeSlideUp 1s 0.6s forwards}
-@keyframes fadeSlideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
-#start-btn{margin-top:40px;padding:14px 48px;font-family:'Orbitron',monospace;font-size:18px;font-weight:700;color:#fff;background:transparent;border:2px solid #e63946;cursor:pointer;letter-spacing:3px;text-transform:uppercase;opacity:0;animation:fadeSlideUp 1s 1.2s forwards;transition:all 0.3s;pointer-events:all}
-#start-btn:hover{background:#e63946;box-shadow:0 0 30px rgba(230,57,70,0.5);transform:scale(1.05)}
-#dialogue-box{position:absolute;bottom:80px;left:50%;transform:translateX(-50%);width:min(700px,85vw);padding:20px 30px;background:rgba(0,0,0,0.85);border-left:4px solid #e63946;opacity:0;transition:opacity 0.5s;font-size:clamp(16px,2vw,22px);line-height:1.6;letter-spacing:1px;backdrop-filter:blur(10px)}
-#dialogue-box.visible{opacity:1}
-#dialogue-box .speaker{font-family:'Orbitron',monospace;font-size:12px;color:#e63946;letter-spacing:3px;margin-bottom:6px;text-transform:uppercase}
-#flash-overlay{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;transition:opacity 0.05s}
-#vignette{position:absolute;inset:0;background:radial-gradient(ellipse at center,transparent 50%,rgba(0,0,0,0.7) 100%);pointer-events:none;opacity:0.8}
-#speed-lines{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity 0.1s}
-#hud{position:absolute;inset:0;opacity:0;transition:opacity 0.5s;pointer-events:none}
-#hud.visible{opacity:1}
-.hud-bar{position:absolute;height:10px;border-radius:5px;overflow:hidden}
-#player-hp-bar{top:30px;left:30px;width:min(300px,35vw);background:rgba(0,0,0,0.6);border:1px solid rgba(230,57,70,0.5)}
-#player-hp-fill{height:100%;width:100%;background:linear-gradient(90deg,#8b0000,#e63946);transition:width 0.3s;border-radius:5px}
-#enemy-hp-bar{top:30px;right:30px;width:min(300px,35vw);background:rgba(0,0,0,0.6);border:1px solid rgba(100,100,255,0.5);direction:rtl}
-#enemy-hp-fill{height:100%;width:100%;background:linear-gradient(90deg,#4444cc,#7777ff);transition:width 0.3s;border-radius:5px}
-.hud-label{position:absolute;font-family:'Orbitron',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase}
-#player-label{top:14px;left:30px;color:#e63946}
-#enemy-label{top:14px;right:30px;color:#7777ff}
-#power-bar-wrap{position:absolute;bottom:30px;left:50%;transform:translateX(-50%);width:min(400px,60vw);height:8px;background:rgba(0,0,0,0.6);border:1px solid rgba(139,0,0,0.5);border-radius:4px;overflow:hidden}
-#power-bar-fill{height:100%;width:0%;background:linear-gradient(90deg,#4a0000,#e63946,#ff4444);border-radius:4px;transition:width 0.2s}
-#power-label{position:absolute;bottom:44px;left:50%;transform:translateX(-50%);font-family:'Orbitron',monospace;font-size:10px;color:#e63946;letter-spacing:3px;text-transform:uppercase;opacity:0.7}
-#move-prompt{position:absolute;bottom:60px;left:50%;transform:translateX(-50%);font-size:clamp(13px,1.5vw,16px);color:rgba(255,255,255,0.5);letter-spacing:2px;text-align:center;white-space:nowrap}
-#move-prompt .key{display:inline-block;padding:2px 8px;border:1px solid rgba(255,255,255,0.3);border-radius:4px;margin:0 3px;font-family:'Orbitron',monospace;font-size:11px}
-#phase-text{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-family:'Orbitron',monospace;font-size:clamp(36px,6vw,72px);font-weight:900;color:#fff;text-transform:uppercase;letter-spacing:6px;opacity:0;pointer-events:none;text-shadow:0 0 40px rgba(230,57,70,0.8)}
-#end-screen{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,0);opacity:0;transition:all 1.5s;pointer-events:none}
-#end-screen.visible{opacity:1;background:rgba(0,0,0,0.9);pointer-events:all}
-#end-title{font-family:'Orbitron',monospace;font-size:clamp(32px,5vw,64px);font-weight:900;letter-spacing:4px;text-transform:uppercase}
-#end-sub{font-size:clamp(14px,2vw,20px);color:#888;margin-top:12px;letter-spacing:3px}
-#replay-btn{margin-top:40px;padding:12px 40px;font-family:'Orbitron',monospace;font-size:16px;color:#fff;background:transparent;border:2px solid #e63946;cursor:pointer;letter-spacing:3px;text-transform:uppercase;transition:all 0.3s}
-#replay-btn:hover{background:#e63946;box-shadow:0 0 30px rgba(230,57,70,0.5)}
-#damage-flash{position:absolute;inset:0;background:rgba(230,57,70,0.3);opacity:0;pointer-events:none}
-</style>
+    <meta charset="UTF-8">
+    <title>Clash of Power: Anime Battle</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@900&display=swap');
+        body { margin: 0; overflow: hidden; background: #000; font-family: 'Orbitron', sans-serif; }
+        canvas { display: block; }
+        
+        /* UI OVERLAY */
+        #game-ui { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; }
+        .health-bar-cont { position: absolute; width: 400px; height: 25px; background: rgba(0,0,0,0.5); border: 2px solid #fff; }
+        #player-ui { top: 40px; left: 40px; }
+        #enemy-ui { top: 40px; right: 40px; border-color: #f00; }
+        .fill { height: 100%; transition: width 0.3s; }
+        #p-fill { background: linear-gradient(90deg, #00f, #0ff); width: 100%; }
+        #e-fill { background: linear-gradient(90deg, #f00, #ff0); width: 100%; }
+        
+        #combo-text { position: absolute; top: 50%; right: 10%; color: #fff; font-size: 3rem; italic; text-shadow: 0 0 20px #0ff; display: none; }
+        #ability-cutin { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: transparent; display: none; align-items: center; justify-content: center; z-index: 100; }
+        #cutin-stripe { width: 100%; height: 200px; background: rgba(255,255,255,0.1); border-top: 5px solid #fff; border-bottom: 5px solid #fff; transform: skewY(-5deg); display: flex; align-items: center; padding-left: 10%; }
+        #ability-name { color: #fff; font-size: 5rem; text-transform: uppercase; -webkit-text-stroke: 2px #000; }
+    </style>
 </head>
 <body>
-<div id="game-canvas"></div>
-<div id="ui-layer" class="interactive">
-    <div id="vignette"></div>
-    <div id="flash-overlay"></div>
-    <div id="speed-lines"></div>
-    <div id="title-screen">
-        <div class="game-title">Clash of Power</div>
-        <div class="title-line"></div>
-        <div class="game-subtitle">Anime Battle</div>
-        <button id="start-btn">Begin Battle</button>
-    </div>
-    <div id="dialogue-box"><div class="speaker"></div><div class="text"></div></div>
-    <div id="hud">
-        <div class="hud-label" id="player-label">Zero</div>
-        <div class="hud-bar" id="player-hp-bar"><div id="player-hp-fill"></div></div>
-        <div class="hud-label" id="enemy-label">Void</div>
-        <div class="hud-bar" id="enemy-hp-bar"><div id="enemy-hp-fill"></div></div>
-        <div id="power-label">Dark Power</div>
-        <div id="power-bar-wrap"><div id="power-bar-fill"></div></div>
-        <div id="move-prompt"></div>
-    </div>
-    <div id="phase-text"></div>
-    <div id="damage-flash"></div>
-    <div id="end-screen">
-        <div id="end-title"></div>
-        <div id="end-sub"></div>
-        <button id="replay-btn">Fight Again</button>
-    </div>
+
+<div id="game-ui">
+    <div id="player-ui" class="health-bar-cont"><div id="p-fill" class="fill"></div><div style="color:white; font-size:10px;">ZAKA (YOU)</div></div>
+    <div id="enemy-ui" class="health-bar-cont"><div id="e-fill" class="fill"></div><div style="color:white; font-size:10px; text-align:right;">THE PROTOTYPE (AI)</div></div>
+    <div id="combo-text">15 HIT!</div>
+    <div id="ability-cutin"><div id="cutin-stripe"><h2 id="ability-name">VOID SLAM</h2></div></div>
 </div>
 
-<script type="importmap">
-{
-    "imports": {
-        "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-        "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
-    }
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+<script>
+let scene, camera, renderer, clock, player, enemy, isCinematic = false;
+let move = { f: 0, b: 0, l: 0, r: 0 }, mouse = { x: 0, y: 0 };
+let pHealth = 100, eHealth = 100;
+
+// --- INITIALIZATION ---
+function init() {
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x020205);
+    scene.fog = new THREE.FogExp2(0x050510, 0.02);
+
+    camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+    renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(window.devicePixelRatio);
+    document.body.appendChild(renderer.domElement);
+
+    // Light
+    const amb = new THREE.AmbientLight(0x404040, 0.5); scene.add(amb);
+    const sun = new THREE.DirectionalLight(0x00ffff, 1); sun.position.set(10, 50, 10); scene.add(sun);
+
+    // City Environment
+    const floor = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), new THREE.MeshStandardMaterial({color: 0x111111}));
+    floor.rotation.x = -Math.PI/2; scene.add(floor);
+
+    // Destructible Objects
+    const truck = new THREE.Mesh(new THREE.BoxGeometry(4, 5, 12), new THREE.MeshStandardMaterial({color: 0x333333}));
+    truck.position.set(15, 2.5, -20); scene.add(truck);
+
+    // Player & Enemy placeholders (Full Body Mesh simulation)
+    player = new THREE.Group();
+    const body = new THREE.Mesh(new THREE.BoxGeometry(1, 2, 0.5), new THREE.MeshStandardMaterial({color: 0x0000ff}));
+    player.add(body);
+    player.position.set(0, 1, 10);
+    scene.add(player);
+
+    enemy = new THREE.Group();
+    const eBody = new THREE.Mesh(new THREE.BoxGeometry(1, 2, 0.5), new THREE.MeshStandardMaterial({color: 0xff0000}));
+    enemy.add(eBody);
+    enemy.position.set(0, 1, -10);
+    scene.add(enemy);
+
+    camera.position.set(0, 3, 20);
+    clock = new THREE.Clock();
+    animate();
 }
-</script>
-<script type="module">
-import * as THREE from 'three';
-import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
-import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
-import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 
-/* ============================================
-   全局配置
-   ============================================ */
-const CONFIG = {
-    groundSize: 200,
-    playerColor: 0xe63946,
-    enemyColor: 0x6666ff,
-    darkColor: 0x2a0a0a,
-    darkGlow: 0x8b0000,
-    playerHP: 100,
-    enemyHP: 120,
-    powerPerSecond: 8,
-    ultimateCost: 100,
-};
+// --- CINEMATIC ABILITY ENGINE ---
+async function triggerAbility(name, color) {
+    if(isCinematic) return;
+    isCinematic = true;
+    
+    // UI Cut-in
+    const cutin = document.getElementById('ability-cutin');
+    document.getElementById('ability-name').innerText = name;
+    document.getElementById('ability-name').style.textShadow = `0 0 30px ${color}`;
+    cutin.style.display = 'flex';
 
-/* ============================================
-   全局状态
-   ============================================ */
-const STATE = {
-    phase: 'TITLE',
-    playerHP: CONFIG.playerHP,
-    enemyHP: CONFIG.enemyHP,
-    power: 0,
-    slowMo: 1,
-    shakeIntensity: 0,
-    shakeDecay: 0.9,
-    time: 0,
-    inputBlocked: false,
-    sequenceActive: false,
-};
+    // Cinematic Camera Zoom (Anime Style)
+    const originalCamPos = camera.position.clone();
+    camera.position.set(player.position.x, player.position.y + 0.5, player.position.z + 2);
+    camera.lookAt(player.position);
 
-/* ============================================
-   DOM 引用
-   ============================================ */
-const DOM = {
-    canvas: document.getElementById('game-canvas'),
-    titleScreen: document.getElementById('title-screen'),
-    dialogueBox: document.getElementById('dialogue-box'),
-    flashOverlay: document.getElementById('flash-overlay'),
-    vignette: document.getElementById('vignette'),
-    speedLines: document.getElementById('speed-lines'),
-    hud: document.getElementById('hud'),
-    playerHPFill: document.getElementById('player-hp-fill'),
-    enemyHPFill: document.getElementById('enemy-hp-fill'),
-    powerFill: document.getElementById('power-bar-fill'),
-    phaseText: document.getElementById('phase-text'),
-    movePrompt: document.getElementById('move-prompt'),
-    endScreen: document.getElementById('end-screen'),
-    endTitle: document.getElementById('end-title'),
-    endSub: document.getElementById('end-sub'),
-    damageFlash: document.getElementById('damage-flash'),
-    uiLayer: document.getElementById('ui-layer'),
-};
+    // Slow Motion Effect
+    const slowTime = 0.2;
+    
+    // SFX - Bass Impact
+    playBassBoom();
 
-/* ============================================
-   音频系统 (Web Audio API)
-   ============================================ */
-let audioCtx = null;
-function initAudio() {
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    await new Promise(r => setTimeout(r, 800));
+    
+    // EXECUTE ATTACK
+    cutin.style.display = 'none';
+    camera.position.copy(originalCamPos);
+    
+    // Action Speed Burst
+    isCinematic = false;
+    spawnVFX(name, color);
+    dealDamage(15);
 }
-function playBassHit(freq = 60, dur = 0.3, vol = 0.4) {
-    if (!audioCtx) return;
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(20, audioCtx.currentTime + dur);
-    gain.gain.setValueAtTime(vol, audioCtx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
-    osc.connect(gain).connect(audioCtx.destination);
-    osc.start(); osc.stop(audioCtx.currentTime + dur);
+
+function spawnVFX(type, color) {
+    const geo = new THREE.SphereGeometry(5, 32, 32);
+    const mat = new THREE.MeshBasicMaterial({color: color, wireframe: true, transparent: true, opacity: 0.5});
+    const pulse = new THREE.Mesh(geo, mat);
+    pulse.position.copy(enemy.position);
+    scene.add(pulse);
+    
+    // Ground Crack / Shockwave
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(8, 0.1, 16, 100), new THREE.MeshBasicMaterial({color: color}));
+    ring.rotation.x = Math.PI/2;
+    ring.position.copy(enemy.position);
+    scene.add(ring);
+
+    setTimeout(() => { scene.remove(pulse); scene.remove(ring); }, 500);
 }
-function playSlash(freq = 800, dur = 0.15) {
-    if (!audioCtx) return;
-    const buf = audioCtx.createBuffer(1, audioCtx.sampleRate * dur, audioCtx.sampleRate);
-    const d = buf.getChannelData(0);
-    for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / d.length);
-    const src = audioCtx.createBufferSource();
-    src.buffer = buf;
-    const filter = audioCtx.createBiquadFilter();
-    filter.type = 'bandpass'; filter.frequency.value = freq; filter.Q.value = 2;
-    const gain = audioCtx.createGain();
-    gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
-    src.connect(filter).connect(gain).connect(audioCtx.destination);
-    src.start();
+
+function playBassBoom() {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.frequency.setValueAtTime(150, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(40, ctx.currentTime + 0.5);
+    gain.gain.setValueAtTime(1, ctx.currentTime);
+    gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.5);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start(); osc.stop(ctx.currentTime + 0.5);
 }
-function playCharge(dur = 1.5) {
-    if (!audioCtx) return;
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(80, audioCtx.currentTime);
-    osc.frequency.linearRampToValueAtTime(400, audioCtx.currentTime + dur);
-    gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-    gain.gain.linearRampToValueAtTime(0.25, audioCtx.currentTime + dur * 0.8);
-    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
-    osc.connect(gain).connect(audioCtx.destination);
-    osc.start(); osc.stop(audioCtx.currentTime + dur);
+
+function dealDamage(amount) {
+    eHealth -= amount;
+    document.getElementById('e-fill').style.width = eHealth + "%";
+    document.getElementById('combo-text').style.display = 'block';
+    setTimeout(() => document.getElementById('combo-text').style.display = 'none', 1000);
 }
-function playImpact() { playBassHit(40, 0.5, 0.5); playSlash(300, 0.2); }
-function playBeam() { playBassHit(50, 1.2, 0.6); playCharge(0.5); }
 
-/* ============================================
-   Three.js 场景初始化
-   ============================================ */
-const scene = new THREE.Scene();
-scene.fog = new THREE.FogExp2(0x87CEEB, 0.006);
-
-const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 500);
-camera.position.set(0, 8, 18);
-camera.lookAt(0, 2, 0);
-
-const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
-renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.0;
-DOM.canvas.appendChild(renderer.domElement);
-
-// 后处理 - Bloom
-const composer = new EffectComposer(renderer);
-composer.addPass(new RenderPass(scene, camera));
-const bloomPass = new UnrealBloomPass(
-    new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85
-);
-composer.addPass(bloomPass);
-
-// 灯光
-const ambientLight = new THREE.AmbientLight(0x334466, 0.6);
-scene.add(ambientLight);
-const sunLight = new THREE.DirectionalLight(0xffeedd, 1.2);
-sunLight.position.set(30, 40, 20);
-sunLight.castShadow = true;
-sunLight.shadow.mapSize.set(2048, 2048);
-sunLight.shadow.camera.near = 1;
-sunLight.shadow.camera.far = 100;
-sunLight.shadow.camera.left = -30;
-sunLight.shadow.camera.right = 30;
-sunLight.shadow.camera.top = 30;
-sunLight.shadow.camera.bottom = -30;
-scene.add(sunLight);
-const rimLight = new THREE.DirectionalLight(0xe63946, 0.3);
-rimLight.position.set(-10, 5, -10);
-scene.add(rimLight);
-
-/* ============================================
-   天空穹顶
-   ============================================ */
-const skyGeo = new THREE.SphereGeometry(200, 32, 32);
-const skyMat = new THREE.ShaderMaterial({
-    side: THREE.BackSide,
-    uniforms: { uTime: { value: 0 } },
-    vertexShader: `
-        varying vec3 vWorldPos;
-        void main() {
-            vWorldPos = (modelMatrix * vec4(position, 1.0)).xyz;
-            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-        }
-    `,
-    fragmentShader: `
-        varying vec3 vWorldPos;
-        void main() {
-            float h = normalize(vWorldPos).y;
-            vec3 top = vec3(0.15, 0.35, 0.75);
-            vec3 mid = vec3(0.4, 0.65, 0.9);
-            vec3 bot = vec3(0.75, 0.85, 0.95);
-            vec3 col = mix(bot, mid, smoothstep(0.0, 0.2, h));
-            col = mix(col, top, smoothstep(0.2, 0.8, h));
-            gl_FragColor = vec4(col, 1.0);
-        }
-    `
+// --- INPUTS ---
+window.addEventListener('keydown', e => {
+    if(e.code === 'Digit1') triggerAbility("Domain Collapse", "#7000ff");
+    if(e.code === 'Digit2') triggerAbility("Void Slam", "#ff0000");
+    if(e.code === 'Digit3') triggerAbility("Energy Beam", "#00ffff");
+    
+    if(e.code === 'KeyW') move.f = 1;
+    if(e.code === 'KeyS') move.b = 1;
+    if(e.code === 'KeyA') move.l = 1;
+    if(e.code === 'KeyD') move.r = 1;
 });
-scene.add(new THREE.Mesh(skyGeo, skyMat));
-
-/* ============================================
-   地面
-   ============================================ */
-const groundMat = new THREE.MeshStandardMaterial({ color: 0x5a7a3a, roughness: 0.9, metalness: 0 });
-const ground = new THREE.Mesh(new THREE.PlaneGeometry(CONFIG.groundSize, CONFIG.groundSize), groundMat);
-ground.rotation.x = -Math.PI / 2;
-ground.receiveShadow = true;
-scene.add(ground);
-
-// 地面裂缝数组
-const crackLines = [];
-function addCrack(pos, angle, length) {
-    const pts = [];
-    const segs = 6;
-    for (let i = 0; i <= segs; i++) {
-        const t = i / segs;
-        const offset = (Math.random() - 0.5) * 0.6 * (1 - Math.abs(t - 0.5) * 2);
-        pts.push(new THREE.Vector3(
-            pos.x + Math.cos(angle) * length * t + Math.cos(angle + 1.57) * offset,
-            0.02,
-            pos.z + Math.sin(angle) * length * t + Math.sin(angle + 1.57) * offset
-        ));
-    }
-    const geo = new THREE.BufferGeometry().setFromPoints(pts);
-    const mat = new THREE.LineBasicMaterial({ color: 0x1a0a0a, linewidth: 2 });
-    const line = new THREE.Line(geo, mat);
-    scene.add(line);
-    crackLines.push(line);
-    // 分支裂纹
-    if (Math.random() > 0.4 && length > 1) {
-        const branchAngle = angle + (Math.random() - 0.5) * 1.5;
-        addCrack(
-            new THREE.Vector3(pos.x + Math.cos(angle) * length * 0.6, 0.02, pos.z + Math.sin(angle) * length * 0.6),
-            branchAngle, length * 0.5
-        );
-    }
-}
-
-/* ============================================
-   环境物体
-   ============================================ */
-function createTree(x, z, scale = 1) {
-    const g = new THREE.Group();
-    const trunk = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.2 * scale, 0.35 * scale, 3 * scale, 6),
-        new THREE.MeshStandardMaterial({ color: 0x5c3a1e })
-    );
-    trunk.position.y = 1.5 * scale;
-    trunk.castShadow = true;
-    g.add(trunk);
-    const leaves = new THREE.Mesh(
-        new THREE.SphereGeometry(1.8 * scale, 8, 6),
-        new THREE.MeshStandardMaterial({ color: 0x2d6b1e })
-    );
-    leaves.position.y = 3.8 * scale;
-    leaves.castShadow = true;
-    g.add(leaves);
-    g.position.set(x, 0, z);
-    scene.add(g);
-    return g;
-}
-
-const trees = [];
-[[-15, -8, 1.2], [-18, -5, 0.9], [16, -6, 1.1], [19, -10, 1.3], [-12, -15, 1], [20, -14, 0.8], [-22, -12, 1.1], [14, 3, 0.7]].forEach(t => {
-    trees.push(createTree(t[0], t[1], t[2]));
+window.addEventListener('keyup', e => {
+    if(e.code === 'KeyW') move.f = 0;
+    if(e.code === 'KeyS') move.b = 0;
+    if(e.code === 'KeyA') move.l = 0;
+    if(e.code === 'KeyD') move.r = 0;
 });
 
-function createBuilding(x, z, w, h, d, color) {
-    const m = new THREE.Mesh(
-        new THREE.BoxGeometry(w, h, d),
-        new THREE.MeshStandardMaterial({ color, roughness: 0.7 })
-    );
-    m.position.set(x, h / 2, z);
-    m.castShadow = true; m.receiveShadow = true;
-    scene.add(m);
-    return m;
-}
-createBuilding(-30, -25, 8, 20, 8, 0x888888);
-createBuilding(-22, -30, 6, 14, 6, 0x999977);
-createBuilding(-36, -22, 10, 28, 8, 0x777777);
-createBuilding(30, -25, 7, 18, 7, 0x889999);
-createBuilding(36, -30, 9, 24, 7, 0x888877);
-createBuilding(25, -32, 6, 12, 6, 0x998877);
-
-// 小房屋
-function createHouse(x, z, rot = 0) {
-    const g = new THREE.Group();
-    const body = new THREE.Mesh(
-        new THREE.BoxGeometry(4, 3, 5),
-        new THREE.MeshStandardMaterial({ color: 0xddccaa })
-    );
-    body.position.y = 1.5; body.castShadow = true;
-    g.add(body);
-    const roof = new THREE.Mesh(
-        new THREE.ConeGeometry(3.8, 2, 4),
-        new THREE.MeshStandardMaterial({ color: 0x8b4513 })
-    );
-    roof.position.y = 4; roof.rotation.y = Math.PI / 4; roof.castShadow = true;
-    g.add(roof);
-    g.position.set(x, 0, z); g.rotation.y = rot;
-    scene.add(g);
-    return g;
-}
-createHouse(-8, 8, 0.3);
-createHouse(10, 10, -0.5);
-
-// 卡车
-function createTruck(x, z) {
-    const g = new THREE.Group();
-    const cab = new THREE.Mesh(
-        new THREE.BoxGeometry(2.5, 2.5, 2.5),
-        new THREE.MeshStandardMaterial({ color: 0x2255aa })
-    );
-    cab.position.set(0, 1.5, 1.5); cab.castShadow = true;
-    g.add(cab);
-    const box = new THREE.Mesh(
-        new THREE.BoxGeometry(2.5, 2.8, 4),
-        new THREE.MeshStandardMaterial({ color: 0x666666 })
-    );
-    box.position.set(0, 1.8, -1.5); box.castShadow = true;
-    g.add(box);
-    [new THREE.Vector3(-0.8, 0.5, 2.5), new THREE.Vector3(0.8, 0.5, 2.5),
-     new THREE.Vector3(-0.8, 0.5, -3), new THREE.Vector3(0.8, 0.5, -3)].forEach(p => {
-        const w = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 0.3, 12), new THREE.MeshStandardMaterial({ color: 0x111111 }));
-        w.position.copy(p); w.rotation.x = Math.PI / 2;
-        g.add(w);
-    });
-    g.position.set(x, 0, z);
-    scene.add(g);
-    return g;
-}
-createTruck(8, 15);
-
-// 公交车
-function createBus(x, z) {
-    const g = new THREE.Group();
-    const body = new THREE.Mesh(
-        new THREE.BoxGeometry(2.5, 3, 8),
-        new THREE.MeshStandardMaterial({ color: 0xdd6600 })
-    );
-    body.position.y = 1.8; body.castShadow = true;
-    g.add(body);
-    // 窗户
-    for (let i = -3; i <= 3; i++) {
-        const win = new THREE.Mesh(
-            new THREE.PlaneGeometry(1.2, 1),
-            new THREE.MeshStandardMaterial({ color: 0xaaddff, emissive: 0x224466, emissiveIntensity: 0.3 })
-        );
-        win.position.set(1.26, 2.5, i); win.rotation.y = Math.PI / 2;
-        g.add(win);
-    }
-    g.position.set(x, 0, z); g.rotation.y = 0.2;
-    scene.add(g);
-    return g;
-}
-createBus(-12, 18);
-
-/* ============================================
-   角色系统
-   ============================================ */
-function createCharacterModel(mainColor, accentColor, hairColor) {
-    const g = new THREE.Group();
-    // 身体
-    const bodyMat = new THREE.MeshStandardMaterial({ color: mainColor, roughness: 0.6 });
-    const body = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.3, 1.2, 8), bodyMat);
-    body.position.y = 1.8; body.castShadow = true;
-    g.add(body);
-    // 头
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.3, 8, 8), new THREE.MeshStandardMaterial({ color: 0xffccaa }));
-    head.position.y = 2.6; head.castShadow = true;
-    g.add(head);
-    // 头发
-    const hair = new THREE.Mesh(new THREE.SphereGeometry(0.35, 8, 8, 0, Math.PI * 2, 0, Math.PI * 0.6), new THREE.MeshStandardMaterial({ color: hairColor }));
-    hair.position.y = 2.7;
-    g.add(hair);
-    // 头发尖刺
-    for (let i = 0; i < 5; i++) {
-        const spike = new THREE.Mesh(
-            new THREE.ConeGeometry(0.08, 0.3 + Math.random() * 0.2, 4),
-            new THREE.MeshStandardMaterial({ color: hairColor })
-        );
-        const angle = (i / 5) * Math.PI * 2;
-        spike.position.set(Math.cos(angle) * 0.25, 2.85 + Math.random() * 0.1, Math.sin(angle) * 0.25);
-        spike.rotation.z = Math.cos(angle) * 0.5;
-        spike.rotation.x = -Math.sin(angle) * 0.5;
-        g.add(spike);
-    }
-    // 手臂
-    const armMat = new THREE.MeshStandardMaterial({ color: mainColor });
-    [-1, 1].forEach(side => {
-        const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.08, 0.9, 6), armMat);
-        arm.position.set(side * 0.55, 1.8, 0);
-        arm.rotation.z = side * 0.15;
-        arm.castShadow = true;
-        g.add(arm);
-        // 手
-        const hand = new THREE.Mesh(new THREE.SphereGeometry(0.09, 6, 6), new THREE.MeshStandardMaterial({ color: 0xffccaa }));
-        hand.position.set(side * 0.65, 1.3, 0);
-        g.add(hand);
-    });
-    // 腿
-    [-1, 1].forEach(side => {
-        const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.1, 1, 6), new THREE.MeshStandardMaterial({ color: 0x222222 }));
-        leg.position.set(side * 0.18, 0.5, 0);
-        leg.castShadow = true;
-        g.add(leg);
-    });
-    // 能量光环
-    const auraGeo = new THREE.SphereGeometry(1.2, 16, 16);
-    const auraMat = new THREE.MeshBasicMaterial({ color: accentColor, transparent: true, opacity: 0.08, side: THREE.BackSide });
-    const aura = new THREE.Mesh(auraGeo, auraMat);
-    aura.position.y = 1.5;
-    g.add(aura);
-    g.userData.aura = aura;
-    g.userData.auraMat = auraMat;
-    return g;
-}
-
-// 玩家角色
-const player = createCharacterModel(0x111111, CONFIG.playerColor, 0xeeeedd);
-player.position.set(0, 0, 5);
-scene.add(player);
-
-// 敌人角色
-const enemy = createCharacterModel(0x222244, CONFIG.enemyColor, 0x222233);
-enemy.position.set(0, 0, -5);
-scene.add(enemy);
-
-// 敌人能量剑
-const swordGroup = new THREE.Group();
-const swordBlade = new THREE.Mesh(
-    new THREE.BoxGeometry(0.08, 1.8, 0.02),
-    new THREE.MeshBasicMaterial({ color: 0x8888ff })
-);
-swordBlade.position.y = 0.9;
-swordGroup.add(swordBlade);
-const swordGlow = new THREE.Mesh(
-    new THREE.BoxGeometry(0.2, 1.8, 0.1),
-    new THREE.MeshBasicMaterial({ color: 0x4444ff, transparent: true, opacity: 0.3 })
-);
-swordGlow.position.y = 0.9;
-swordGroup.add(swordGlow);
-swordGroup.position.set(0.65, 1.3, 0);
-enemy.add(swordGroup);
-
-/* ============================================
-   粒子系统
-   ============================================ */
-const MAX_PARTICLES = 3000;
-const particlePositions = new Float32Array(MAX_PARTICLES * 3);
-const particleColors = new Float32Array(MAX_PARTICLES * 3);
-const particleSizes = new Float32Array(MAX_PARTICLES);
-const particleGeo = new THREE.BufferGeometry();
-particleGeo.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
-particleGeo.setAttribute('aColor', new THREE.BufferAttribute(particleColors, 3));
-particleGeo.setAttribute('size', new THREE.BufferAttribute(particleSizes, 1));
-
-const particleMat = new THREE.ShaderMaterial({
-    transparent: true,
-    depthWrite: false,
-    blending: THREE.AdditiveBlending,
-    uniforms: { uPixelRatio: { value: renderer.getPixelRatio() } },
-    vertexShader: `
-        attribute float size;
-        attribute vec3 aColor;
-        varying vec3 vColor;
-        uniform float uPixelRatio;
-        void main() {
-            vColor = aColor;
-            vec4 mvPos = modelViewMatrix * vec4(position, 1.0);
-            gl_PointSize = size * uPixelRatio * (80.0 / -mvPos.z);
-            gl_PointSize = clamp(gl_PointSize, 1.0, 64.0);
-            gl_Position = projectionMatrix * mvPos;
-        }
-    `,
-    fragmentShader: `
-        varying vec3 vColor;
-        void main() {
-            float d = length(gl_PointCoord - vec2(0.5));
-            if (d > 0.5) discard;
-            float alpha = smoothstep(0.5, 0.1, d);
-            gl_FragColor = vec4(vColor, alpha);
-        }
-    `
-});
-const particleSystem = new THREE.Points(particleGeo, particleMat);
-scene.add(particleSystem);
-
-const particles = [];
-function spawnParticle(x, y, z, vx, vy, vz, r, g, b, size, life) {
-    if (particles.length >= MAX_PARTICLES) return;
-    particles.push({ x, y, z, vx, vy, vz, r, g, b, size, life, maxLife: life, active: true });
-}
-function updateParticles(dt) {
-    for (let i = particles.length - 1; i >= 0; i--) {
-        const p = particles[i];
-        p.x += p.vx * dt; p.y += p.vy * dt; p.z += p.vz * dt;
-        p.vy -= 2 * dt;
-        p.life -= dt;
-        if (p.life <= 0) { particles.splice(i, 1); }
-    }
-    for (let i = 0; i < MAX_PARTICLES; i++) {
-        if (i < particles.length) {
-            const p = particles[i];
-            const fade = Math.max(0, p.life / p.maxLife);
-            particlePositions[i * 3] = p.x;
-            particlePositions[i * 3 + 1] = p.y;
-            particlePositions[i * 3 + 2] = p.z;
-            particleColors[i * 3] = p.r * fade;
-            particleColors[i * 3 + 1] = p.g * fade;
-            particleColors[i * 3 + 2] = p.b * fade;
-            particleSizes[i] = p.size * fade;
-        } else {
-            particleSizes[i] = 0;
-        }
-    }
-    particleGeo.attributes.position.needsUpdate = true;
-    particleGeo.attributes.aColor.needsUpdate = true;
-    particleGeo.attributes.size.needsUpdate = true;
-}
-
-// 粒子发射辅助函数
-function emitAuraParticles(obj, color, count = 2) {
-    for (let i = 0; i < count; i++) {
-        const angle = Math.random() * Math.PI * 2;
-        const r = 0.8 + Math.random() * 0.6;
-        spawnParticle(
-            obj.position.x + Math.cos(angle) * r,
-            0.5 + Math.random() * 2.5,
-            obj.position.z + Math.sin(angle) * r,
-            Math.cos(angle) * 0.3,
-            1 + Math.random() * 2,
-            Math.sin(angle) * 0.3,
-            color.r, color.g, color.b,
-            1 + Math.random() * 2, 0.5 + Math.random() * 0.8
-        );
-    }
-}
-function emitExplosion(pos, color, count = 60) {
-    for (let i = 0; i < count; i++) {
-        const angle = Math.random() * Math.PI * 2;
-        const up = Math.random() * Math.PI;
-        const speed = 3 + Math.random() * 8;
-        spawnParticle(
-            pos.x + (Math.random() - 0.5) * 0.5,
-            pos.y + Math.random() * 0.5,
-            pos.z + (Math.random() - 0.5) * 0.5,
-            Math.cos(angle) * Math.sin(up) * speed,
-            Math.cos(up) * speed * 0.8,
-            Math.sin(angle) * Math.sin(up) * speed,
-            color.r, color.g, color.b,
-            2 + Math.random() * 4, 0.3 + Math.random() * 0.7
-        );
-    }
-}
-function emitShockwaveRing(pos, color, radius = 5, count = 40) {
-    for (let i = 0; i < count; i++) {
-        const angle = (i / count) * Math.PI * 2;
-        spawnParticle(
-            pos.x + Math.cos(angle) * 0.3,
-            pos.y + 0.1,
-            pos.z + Math.sin(angle) * 0.3,
-            Math.cos(angle) * radius,
-            0.5,
-            Math.sin(angle) * radius,
-            color.r, color.g, color.b,
-            2, 0.4
-        );
-    }
-}
-function emitDarkParticles(pos, count = 30) {
-    for (let i = 0; i < count; i++) {
-        const angle = Math.random() * Math.PI * 2;
-        const r = Math.random() * 3;
-        spawnParticle(
-            pos.x + Math.cos(angle) * r,
-            Math.random() * 4,
-            pos.z + Math.sin(angle) * r,
-            (Math.random() - 0.5) * 1,
-            -0.5 - Math.random() * 2,
-            (Math.random() - 0.5) * 1,
-            0.4, 0, 0.05, 2 + Math.random() * 3, 0.8 + Math.random() * 0.5
-        );
-    }
-}
-
-/* ============================================
-   冲击波/光束特效
-   ============================================ */
-const tempEffects = [];
-function createShockwave(pos, color, maxRadius = 8, duration = 0.5) {
-    const geo = new THREE.RingGeometry(0.1, 0.5, 32);
-    const mat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.8, side: THREE.DoubleSide });
-    const mesh = new THREE.Mesh(geo, mat);
-    mesh.position.copy(pos);
-    mesh.rotation.x = -Math.PI / 2;
-    scene.add(mesh);
-    tempEffects.push({ mesh, type: 'shockwave', age: 0, duration, maxRadius, startRadius: 0.5 });
-}
-function createBeam(start, end, color, duration = 1.5, width = 0.8) {
-    const dir = new THREE.Vector3().subVectors(end, start);
-    const len = Math.max(0.1, dir.length());
-    const mid = new THREE.Vector3().addVectors(start, end).multiplyScalar(0.5);
-    // 核心光束
-    const coreGeo = new THREE.CylinderGeometry(width * 0.3, width * 0.3, len, 8);
-    const coreMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.9 });
-    const core = new THREE.Mesh(coreGeo, coreMat);
-    core.position.copy(mid);
-    core.lookAt(end);
-    core.rotateX(Math.PI / 2);
-    scene.add(core);
-    // 外层光束
-    const outerGeo = new THREE.CylinderGeometry(width, width, len, 8);
-    const outerMat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.5 });
-    const outer = new THREE.Mesh(outerGeo, outerMat);
-    outer.position.copy(mid);
-    outer.lookAt(end);
-    outer.rotateX(Math.PI / 2);
-    scene.add(outer);
-    // 光晕
-    const glowGeo = new THREE.CylinderGeometry(width * 2, width * 2, len, 8);
-    const glowMat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.15 });
-    const glow = new THREE.Mesh(glowGeo, glowMat);
-    glow.position.copy(mid);
-    glow.lookAt(end);
-    glow.rotateX(Math.PI / 2);
-    scene.add(glow);
-    tempEffects.push({ mesh: core, type: 'beam', age: 0, duration, fadeOut: true });
-    tempEffects.push({ mesh: outer, type: 'beam', age: 0, duration, fadeOut: true });
-    tempEffects.push({ mesh: glow, type: 'beam', age: 0, duration, fadeOut: true });
-    // 光束粒子
-    for (let i = 0; i < 50; i++) {
-        const t = Math.random();
-        const p = new THREE.Vector3().lerpVectors(start, end, t);
-        spawnParticle(
-            p.x + (Math.random() - 0.5) * width * 2,
-            p.y + (Math.random() - 0.5) * width * 2,
-            p.z + (Math.random() - 0.5) * width * 2,
-            (Math.random() - 0.5) * 3, (Math.random() - 0.5) * 3, (Math.random() - 0.5) * 3,
-            0.8, 0.1, 0.1, 1 + Math.random() * 2, 0.3 + Math.random() * 0.3
-        );
-    }
-}
-function createEnergySphere(pos, color, radius = 1, duration = 0.8) {
-    const geo = new THREE.SphereGeometry(radius, 16, 16);
-    const mat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.6 });
-    const mesh = new THREE.Mesh(geo, mat);
-    mesh.position.copy(pos);
-    scene.add(mesh);
-    tempEffects.push({ mesh, type: 'sphere', age: 0, duration, expand: true });
-}
-function createGroundDarkMark(pos, radius = 4) {
-    const geo = new THREE.CircleGeometry(radius, 32);
-    const mat = new THREE.MeshBasicMaterial({ color: 0x0a0000, transparent: true, opacity: 0.7 });
-    const mesh = new THREE.Mesh(geo, mat);
-    mesh.rotation.x = -Math.PI / 2;
-    mesh.position.set(pos.x, 0.02, pos.z);
-    scene.add(mesh);
-    return mesh;
-}
-
-function updateTempEffects(dt) {
-    for (let i = tempEffects.length - 1; i >= 0; i--) {
-        const e = tempEffects[i];
-        e.age += dt;
-        const t = Math.min(1, e.age / e.duration);
-        if (e.type === 'shockwave') {
-            const scale = e.startRadius + (e.maxRadius - e.startRadius) * t;
-            e.mesh.scale.set(scale, scale, 1);
-            e.mesh.material.opacity = 0.8 * (1 - t);
-        } else if (e.type === 'beam' && e.fadeOut) {
-            if (e.mesh.material) e.mesh.material.opacity *= 0.95;
-        } else if (e.type === 'sphere' && e.expand) {
-            const s = 1 + t * 2;
-            e.mesh.scale.set(s, s, s);
-            e.mesh.material.opacity = 0.6 * (1 - t);
-        }
-        if (e.age >= e.duration) {
-            scene.remove(e.mesh);
-            if (e.mesh.geometry) e.mesh.geometry.dispose();
-            if (e.mesh.material) e.mesh.material.dispose();
-            tempEffects.splice(i, 1);
-        }
-    }
-}
-
-/* ============================================
-   残影系统
-   ============================================ */
-const afterimages = [];
-function createAfterimage(obj, color = 0xe63946, opacity = 0.4) {
-    const clone = obj.clone();
-    clone.traverse(child => {
-        if (child.isMesh) {
-            child.material = new THREE.MeshBasicMaterial({ color, transparent: true, opacity, side: THREE.DoubleSide });
-            if (child.geometry) child.geometry = child.geometry.clone();
-        }
-    });
-    scene.add(clone);
-    afterimages.push({ mesh: clone, age: 0, duration: 0.4 });
-}
-function updateAfterimages(dt) {
-    for (let i = afterimages.length - 1; i >= 0; i--) {
-        const a = afterimages[i];
-        a.age += dt;
-        const t = a.age / a.duration;
-        a.mesh.traverse(child => {
-            if (child.isMesh && child.material) child.material.opacity = 0.4 * (1 - t);
-        });
-        if (a.age >= a.duration) {
-            scene.remove(a.mesh);
-            a.mesh.traverse(child => {
-                if (child.geometry) child.geometry.dispose();
-                if (child.material) child.material.dispose();
-            });
-            afterimages.splice(i, 1);
-        }
-    }
-}
-
-/* ============================================
-   UI 工具函数
-   ============================================ */
-function flashScreen(color = '#fff', duration = 100) {
-    DOM.flashOverlay.style.background = color;
-    DOM.flashOverlay.style.opacity = '1';
-    setTimeout(() => { DOM.flashOverlay.style.opacity = '0'; }, duration);
-}
-function showPhaseText(text, color = '#fff', duration = 1500) {
-    DOM.phaseText.textContent = text;
-    DOM.phaseText.style.color = color;
-    DOM.phaseText.style.opacity = '1';
-    DOM.phaseText.style.transform = 'translate(-50%,-50%) scale(1.2)';
-    DOM.phaseText.style.transition = 'all 0.15s';
-    setTimeout(() => {
-        DOM.phaseText.style.transform = 'translate(-50%,-50%) scale(1)';
-    }, 150);
-    setTimeout(() => {
-        DOM.phaseText.style.transition = 'opacity 0.8s';
-        DOM.phaseText.style.opacity = '0';
-    }, duration);
-}
-function showDialogue(speaker, text, duration = 3000) {
-    DOM.dialogueBox.querySelector('.speaker').textContent = speaker;
-    DOM.dialogueBox.querySelector('.text').textContent = text;
-    DOM.dialogueBox.classList.add('visible');
-    return new Promise(r => setTimeout(() => {
-        DOM.dialogueBox.classList.remove('visible');
-        setTimeout(r, 500);
-    }, duration));
-}
-function shakeCamera(intensity) {
-    STATE.shakeIntensity = Math.max(STATE.shakeIntensity, intensity);
-}
-function setSlowMo(factor, duration = 0) {
-    STATE.slowMo = factor;
-    if (duration > 0) setTimeout(() => { STATE.slowMo = 1; }, duration);
-}
-function showSpeedLines(duration = 300) {
-    DOM.speedLines.style.opacity = '1';
-    DOM.speedLines.style.background = `repeating-conic-gradient(from 0deg, rgba(255,255,255,0.08) 0deg 2deg, transparent 2deg 8deg)`;
-    setTimeout(() => { DOM.speedLines.style.opacity = '0'; }, duration);
-}
-function damageFlash() {
-    DOM.damageFlash.style.opacity = '1';
-    setTimeout(() => { DOM.damageFlash.style.opacity = '0'; }, 200);
-}
-function updateHUD() {
-    DOM.playerHPFill.style.width = Math.max(0, STATE.playerHP / CONFIG.playerHP * 100) + '%';
-    DOM.enemyHPFill.style.width = Math.max(0, STATE.enemyHP / CONFIG.enemyHP * 100) + '%';
-    DOM.powerFill.style.width = Math.min(100, STATE.power / CONFIG.ultimateCost * 100) + '%';
-}
-
-/* ============================================
-   摄像机控制
-   ============================================ */
-const camTarget = new THREE.Vector3(0, 2, 0);
-const camOffset = new THREE.Vector3(0, 5, 14);
-let camOrbitAngle = 0;
-let camOrbitActive = false;
-let camOrbitDuration = 0;
-let camOrbitTimer = 0;
-
-function setCameraOrbit(duration, radius = 12, height = 4) {
-    camOrbitActive = true;
-    camOrbitDuration = duration;
-    camOrbitTimer = 0;
-    camOrbitAngle = camera.position.x > 0 ? 0 : Math.PI;
-    camOffset.set(0, height, radius);
-}
-function setCameraPos(pos, lookAt, instant = false) {
-    if (instant) {
-        camera.position.copy(pos);
-        camera.lookAt(lookAt);
-    } else {
-        // 通过设置目标来平滑过渡
-        camOffset.copy(pos).sub(lookAt);
-        camTarget.copy(lookAt);
-        camOrbitActive = false;
-    }
-}
-function updateCamera(dt) {
-    if (camOrbitActive) {
-        camOrbitTimer += dt;
-        camOrbitAngle += dt * (Math.PI * 2 / camOrbitDuration);
-        const cx = camTarget.x + Math.cos(camOrbitAngle) * camOffset.z;
-        const cz = camTarget.z + Math.sin(camOrbitAngle) * camOffset.z;
-        camera.position.set(cx, camTarget.y + camOffset.y, cz);
-        camera.lookAt(camTarget);
-        if (camOrbitTimer >= camOrbitDuration) camOrbitActive = false;
-    } else {
-        const desiredPos = new THREE.Vector3().addVectors(camTarget, camOffset);
-        camera.position.lerp(desiredPos, 1 - Math.pow(0.01, dt));
-        camera.lookAt(camTarget);
-    }
-    // 屏幕震动
-    if (STATE.shakeIntensity > 0.01) {
-        camera.position.x += (Math.random() - 0.5) * STATE.shakeIntensity;
-        camera.position.y += (Math.random() - 0.5) * STATE.shakeIntensity * 0.5;
-        camera.position.z += (Math.random() - 0.5) * STATE.shakeIntensity;
-        STATE.shakeIntensity *= STATE.shakeDecay;
-    }
-}
-
-/* ============================================
-   动画辅助
-   ============================================ */
-function animateTo(obj, props, duration, easing = 'easeInOut') {
-    return new Promise(resolve => {
-        const start = {};
-        const keys = Object.keys(props);
-        keys.forEach(k => {
-            if (k.includes('.')) {
-                const parts = k.split('.');
-                start[k] = obj[parts[0]][parts[1]];
-            } else {
-                start[k] = obj[k];
-            }
-        });
-        const startTime = performance.now();
-        function tick() {
-            const elapsed = performance.now() - startTime;
-            let t = Math.min(1, elapsed / duration);
-            if (easing === 'easeInOut') t = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
-            else if (easing === 'easeOut') t = 1 - Math.pow(1 - t, 3);
-            else if (easing === 'easeIn') t = t * t * t;
-            keys.forEach(k => {
-                const val = start[k] + (props[k] - start[k]) * t;
-                if (k.includes('.')) {
-                    const parts = k.split('.');
-                    obj[parts[0]][parts[1]] = val;
-                } else {
-                    obj[k] = val;
-                }
-            });
-            if (elapsed < duration) requestAnimationFrame(tick);
-            else resolve();
-        }
-        tick();
-    });
-}
-function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
-function waitUntil(condition, checkInterval = 50) {
-    return new Promise(r => {
-        const iv = setInterval(() => { if (condition()) { clearInterval(iv); r(); } }, checkInterval);
-    });
-}
-
-/* ============================================
-   暗黑域展开 - 终极技能
-   ============================================ */
-async function darkDomainExpansion() {
-    STATE.sequenceActive = true;
-    STATE.inputBlocked = true;
-    STATE.power = 0;
-    updateHUD();
-
-    playCharge(2);
-
-    // 屏幕变暗
-    DOM.vignette.style.background = 'radial-gradient(ellipse at center,transparent 20%,rgba(10,0,0,0.95) 100%)';
-
-    // 摄像机拉远
-    setCameraPos(new THREE.Vector3(0, 15, 25), new THREE.Vector3(0, 1, 0));
-    await delay(400);
-
-    // 暗黑粒子从地面升起
-    for (let i = 0; i < 80; i++) {
-        emitDarkParticles(player.position, 2);
-    }
-
-    // 暗黑柱从地面升起
-    const pillarGeo = new THREE.CylinderGeometry(3, 3, 30, 16, 1, true);
-    const pillarMat = new THREE.MeshBasicMaterial({ color: 0x0a0000, transparent: true, opacity: 0, side: THREE.DoubleSide });
-    const pillar = new THREE.Mesh(pillarGeo, pillarMat);
-    pillar.position.set(player.position.x, 15, player.position.z);
-    scene.add(pillar);
-    await animateTo(pillarMat, { opacity: 0.7 }, 800);
-    await delay(300);
-
-    // 360度摄像机环绕
-    camTarget.set(player.position.x, 3, player.position.z);
-    setCameraOrbit(2.5, 10, 5);
-
-    // 暗黑能量球在手中聚集
-    createEnergySphere(new THREE.Vector3(player.position.x + 0.7, 2, player.position.z), 0x3a0000, 0.5, 1.5);
-    await delay(500);
-    createEnergySphere(new THREE.Vector3(player.position.x + 0.7, 2, player.position.z), 0x5a0000, 0.8, 1.2);
-    await delay(500);
-
-    setSlowMo(0.3, 1500);
-    showPhaseText('DARK DOMAIN', '#8b0000', 2000);
-
-    // 域展开 - 暗黑地面标记
-    const darkMark = createGroundDarkMark(player.position, 12);
-
-    // 更多暗黑粒子
-    for (let i = 0; i < 100; i++) {
-        emitDarkParticles(player.position, 3);
-    }
-
-    await delay(1000);
-
-    // 暗黑光束发射
-    STATE.slowMo = 1;
-    flashScreen('#1a0000', 200);
-    playBeam();
-    shakeCamera(3);
-
-    const beamStart = new THREE.Vector3(player.position.x + 0.7, 2, player.position.z);
-    const beamEnd = new THREE.Vector3(enemy.position.x, 2, enemy.position.z);
-    createBeam(beamStart, beamEnd, 0x4a0000, 2, 1.5);
-
-    await delay(300);
-
-    // 敌人被击中
-    STATE.enemyHP -= 40;
-    updateHUD();
-    damageFlash();
-    shakeCamera(4);
-    playImpact();
-
-    // 敌人被打飞
-    await animateTo(enemy.position, { y: 6 }, 300, 'easeOut');
-    await animateTo(enemy.position, { x: enemy.position.x + 8, z: enemy.position.z - 3 }, 400);
-    await animateTo(enemy.position, { y: 0 }, 300, 'easeIn');
-
-    // 落地爆炸
-    emitExplosion(enemy.position, { r: 0.5, g: 0.2, b: 0.8 }, 80);
-    createShockwave(enemy.position, 0x4444ff, 8, 0.6);
-    addCrack(enemy.position, 0, 5);
-    addCrack(enemy.position, 1, 4);
-    addCrack(enemy.position, -1.2, 3);
-    addCrack(enemy.position, 2.5, 3.5);
-    shakeCamera(2);
-    flashScreen('#222', 150);
-    playImpact();
-
-    // 清理暗黑柱
-    await animateTo(pillarMat, { opacity: 0 }, 1000);
-    scene.remove(pillar);
-    pillar.geometry.dispose();
-    pillar.material.dispose();
-
-    await delay(500);
-
-    // 恢复正常
-    DOM.vignette.style.background = 'radial-gradient(ellipse at center,transparent 50%,rgba(0,0,0,0.7) 100%)';
-    camTarget.set(0, 2, 0);
-    setCameraPos(new THREE.Vector3(0, 5, 14), new THREE.Vector3(0, 2, 0));
-    STATE.sequenceActive = false;
-    STATE.inputBlocked = false;
-}
-
-/* ============================================
-   闪步连击
-   ============================================ */
-async function flashStepCombo() {
-    STATE.sequenceActive = true;
-    STATE.inputBlocked = true;
-
-    const startX = player.position.x;
-    const startZ = player.position.z;
-    const targetX = enemy.position.x - 1.2;
-    const targetZ = enemy.position.z;
-
-    // 闪步前短暂蓄力
-    showSpeedLines(200);
-    player.userData.auraMat.opacity = 0.3;
-    await delay(100);
-
-    // 残影 + 位移
-    createAfterimage(player, 0xe63946, 0.5);
-    playSlash(1200, 0.1);
-    player.position.x = targetX;
-    player.position.z = targetZ;
-    flashScreen('rgba(230,57,70,0.2)', 60);
-    shakeCamera(0.8);
-    showSpeedLines(100);
-
-    await delay(80);
-
-    // 第一击
-    playSlash(900, 0.08);
-    STATE.enemyHP -= 5;
-    updateHUD();
-    shakeCamera(0.5);
-    createAfterimage(player, 0xff4444, 0.3);
-    emitExplosion(new THREE.Vector3(enemy.position.x - 0.5, 2, enemy.position.z), { r: 1, g: 0.3, b: 0.2 }, 15);
-    await delay(80);
-
-    // 第二击 - 闪到另一侧
-    createAfterimage(player, 0xe63946, 0.4);
-    player.position.x = enemy.position.x + 1.2;
-    playSlash(1000, 0.08);
-    STATE.enemyHP -= 5;
-    updateHUD();
-    shakeCamera(0.5);
-    showSpeedLines(60);
-    emitExplosion(new THREE.Vector3(enemy.position.x + 0.5, 2.2, enemy.position.z), { r: 1, g: 0.4, b: 0.2 }, 15);
-    await delay(80);
-
-    // 第三击 - 上方
-    createAfterimage(player, 0xff6666, 0.3);
-    player.position.y = 2;
-    playSlash(1100, 0.08);
-    STATE.enemyHP -= 5;
-    updateHUD();
-    shakeCamera(0.6);
-    emitExplosion(new THREE.Vector3(enemy.position.x, 3, enemy.position.z), { r: 1, g: 0.2, b: 0.1 }, 20);
-    await delay(80);
-
-    // 最终重击
-    setSlowMo(0.2, 400);
-    player.position.y = 0;
-    player.position.x = enemy.position.x - 1.5;
-    playImpact();
-    STATE.enemyHP -= 10;
-    updateHUD();
-    shakeCamera(2.5);
-    flashScreen('rgba(255,255,255,0.4)', 80);
-    emitExplosion(new THREE.Vector3(enemy.position.x - 0.3, 2, enemy.position.z), { r: 1, g: 0.5, b: 0.2 }, 40);
-    createShockwave(new THREE.Vector3(enemy.position.x, 0.1, enemy.position.z), 0xe63946, 6, 0.5);
-
-    // 玩家回到原位
-    await delay(300);
-    player.position.x = startX;
-    player.position.z = startZ;
-    player.userData.auraMat.opacity = 0.08;
-
-    STATE.sequenceActive = false;
-    STATE.inputBlocked = false;
-}
-
-/* ============================================
-   天空连击
-   ============================================ */
-async function skyCombo() {
-    STATE.sequenceActive = true;
-    STATE.inputBlocked = true;
-
-    // 上挑攻击
-    playSlash(600, 0.12);
-    shakeCamera(1);
-    emitExplosion(new THREE.Vector3(enemy.position.x, 1, enemy.position.z), { r: 0.8, g: 0.6, b: 0.2 }, 25);
-
-    // 敌人被打飞到天空
-    await animateTo(enemy.position, { y: 12 }, 400, 'easeOut');
-    STATE.enemyHP -= 8;
-    updateHUD();
-
-    // 摄像机跟随到天空
-    camTarget.set(enemy.position.x, 10, enemy.position.z);
-    setCameraPos(new THREE.Vector3(enemy.position.x + 6, 12, enemy.position.z + 5), camTarget.clone(), true);
-    await delay(200);
-
-    // 玩家瞬移到敌人上方
-    createAfterimage(player, 0xe63946, 0.5);
-    flashScreen('rgba(230,57,70,0.3)', 80);
-    playSlash(1500, 0.08);
-    player.position.set(enemy.position.x, enemy.position.y + 2, enemy.position.z);
-
-    await delay(300);
-
-    // 下砸
-    setSlowMo(0.15, 600);
-    playBassHit(30, 0.8, 0.6);
-    showPhaseText('IMPACT', '#e63946', 800);
-
-    await animateTo(player.position, { y: 0 }, 250, 'easeIn');
-    await animateTo(enemy.position, { y: 0 }, 250, 'easeIn');
-
-    STATE.slowMo = 1;
-    STATE.enemyHP -= 12;
-    updateHUD();
-
-    // 落地大爆炸
-    shakeCamera(5);
-    flashScreen('#fff', 120);
-    playImpact();
-    emitExplosion(new THREE.Vector3(enemy.position.x, 0.5, enemy.position.z), { r: 1, g: 0.4, b: 0.1 }, 80);
-    createShockwave(new THREE.Vector3(enemy.position.x, 0.1, enemy.position.z), 0xff4400, 10, 0.7);
-    addCrack(enemy.position, 0, 6);
-    addCrack(enemy.position, 0.8, 5);
-    addCrack(enemy.position, -0.7, 4);
-    addCrack(enemy.position, 2, 3);
-
-    // 尘土飞扬
-    for (let i = 0; i < 40; i++) {
-        const angle = Math.random() * Math.PI * 2;
-        const speed = 2 + Math.random() * 4;
-        spawnParticle(
-            enemy.position.x + (Math.random() - 0.5) * 2, 0.2, enemy.position.z + (Math.random() - 0.5) * 2,
-            Math.cos(angle) * speed, 1 + Math.random() * 3, Math.sin(angle) * speed,
-            0.6, 0.5, 0.4, 2 + Math.random() * 3, 0.5 + Math.random() * 0.5
-        );
-    }
-
-    // 恢复摄像机
-    await delay(500);
-    camTarget.set(0, 2, 0);
-    setCameraPos(new THREE.Vector3(0, 5, 14), new THREE.Vector3(0, 2, 0));
-    player.position.set(0, 0, 5);
-
-    STATE.sequenceActive = false;
-    STATE.inputBlocked = false;
-}
-
-/* ============================================
-   能量域攻击
-   ============================================ */
-async function energyDomainAttack() {
-    STATE.sequenceActive = true;
-    STATE.inputBlocked = true;
-
-    playCharge(1.2);
-
-    // 摄像机环绕
-    camTarget.set(player.position.x, 2, player.position.z);
-    setCameraOrbit(1.5, 8, 3);
-
-    // 能量聚集
-    player.userData.auraMat.opacity = 0.4;
-    player.userData.auraMat.color.setHex(0xff0000);
-    for (let i = 0; i < 30; i++) {
-        const angle = (i / 30) * Math.PI * 2;
-        const r = 2 + Math.sin(STATE.time * 5 + i) * 0.5;
-        spawnParticle(
-            player.position.x + Math.cos(angle) * r,
-            1 + Math.sin(i * 0.5) * 1.5,
-            player.position.z + Math.sin(angle) * r,
-            -Math.cos(angle) * 2, 0.5, -Math.sin(angle) * 2,
-            1, 0.1, 0.05, 1.5, 0.8
-        );
-    }
-
-    await delay(800);
-
-    // 时间减慢
-    setSlowMo(0.25, 1000);
-    showPhaseText('ENERGY BURST', '#e63946', 1200);
-
-    // 能量爆发
-    flashScreen('rgba(230,57,70,0.5)', 150);
-    playImpact();
-    shakeCamera(3);
-
-    emitExplosion(player.position, { r: 1, g: 0.2, b: 0.1 }, 60);
-    createShockwave(new THREE.Vector3(player.position.x, 0.1, player.position.z), 0xe63946, 12, 0.8);
-    createShockwave(new THREE.Vector3(player.position.x, 0.5, player.position.z), 0xff4400, 8, 0.6);
-
-    // 地面裂缝
-    for (let i = 0; i < 6; i++) {
-        addCrack(player.position, (i / 6) * Math.PI * 2, 4 + Math.random() * 3);
-    }
-
-    await delay(300);
-
-    // 冲击波到达敌人
-    STATE.enemyHP -= 15;
-    updateHUD();
-    damageFlash();
-    shakeCamera(2);
-
-    // 敌人被推后
-    await animateTo(enemy.position, { z: enemy.position.z - 3 }, 300);
-    emitExplosion(enemy.position, { r: 0.6, g: 0.3, b: 0.8 }, 30);
-
-    // 恢复
-    await delay(500);
-    player.userData.auraMat.opacity = 0.08;
-    player.userData.auraMat.color.setHex(CONFIG.playerColor);
-    camTarget.set(0, 2, 0);
-    setCameraPos(new THREE.Vector3(0, 5, 14), new THREE.Vector3(0, 2, 0));
-
-    STATE.sequenceActive = false;
-    STATE.inputBlocked = false;
-}
-
-/* ============================================
-   敌人 AI 行为
-   ============================================ */
-let enemyAI = { timer: 0, cooldown: 3, state: 'idle' };
-
-async function enemyAttack() {
-    if (STATE.phase !== 'FIGHTING' || STATE.enemyHP <= 0) return;
-    enemyAI.state = 'attacking';
-
-    // 敌人闪步接近
-    createAfterimage(enemy, 0x6666ff, 0.4);
-    showSpeedLines(150);
-    playSlash(800, 0.1);
-    const origPos = enemy.position.clone();
-    enemy.position.x = player.position.x + 1;
-    enemy.position.z = player.position.z;
-    flashScreen('rgba(100,100,255,0.2)', 60);
-    await delay(150);
-
-    // 挥剑
-    playSlash(600, 0.12);
-    shakeCamera(1);
-    STATE.playerHP -= 8;
-    updateHUD();
-    damageFlash();
-    emitExplosion(new THREE.Vector3(player.position.x, 2, player.position.z), { r: 0.3, g: 0.3, b: 1 }, 20);
-
-    // 退回
-    await delay(200);
-    createAfterimage(enemy, 0x6666ff, 0.3);
-    enemy.position.copy(origPos);
-
-    await delay(500);
-    enemyAI.state = 'idle';
-    enemyAI.timer = 0;
-}
-
-async function enemyHeavyAttack() {
-    if (STATE.phase !== 'FIGHTING' || STATE.enemyHP <= 0) return;
-    enemyAI.state = 'attacking';
-
-    // 蓄力
-    enemy.userData.auraMat.opacity = 0.4;
-    enemy.userData.auraMat.color.setHex(0x4444ff);
-    playCharge(0.8);
-    await delay(600);
-
-    // 冲刺攻击
-    createAfterimage(enemy, 0x4444ff, 0.5);
-    showSpeedLines(200);
-    playSlash(1000, 0.1);
-    const origPos = enemy.position.clone();
-    enemy.position.x = player.position.x + 0.8;
-    enemy.position.z = player.position.z;
-
-    setSlowMo(0.3, 300);
-    playImpact();
-    shakeCamera(2.5);
-    flashScreen('rgba(100,100,255,0.4)', 100);
-    STATE.playerHP -= 15;
-    updateHUD();
-    damageFlash();
-    emitExplosion(new THREE.Vector3(player.position.x, 2, player.position.z), { r: 0.4, g: 0.2, b: 1 }, 40);
-    createShockwave(new THREE.Vector3(player.position.x, 0.1, player.position.z), 0x4444ff, 6, 0.5);
-
-    await delay(400);
-    createAfterimage(enemy, 0x6666ff, 0.3);
-    enemy.position.copy(origPos);
-    enemy.userData.auraMat.opacity = 0.08;
-    enemy.userData.auraMat.color.setHex(CONFIG.enemyColor);
-
-    enemyAI.state = 'idle';
-    enemyAI.timer = 0;
-}
-
-function updateEnemyAI(dt) {
-    if (STATE.phase !== 'FIGHTING' || enemyAI.state !== 'idle') return;
-    enemyAI.timer += dt;
-    if (enemyAI.timer >= enemyAI.cooldown) {
-        if (STATE.enemyHP > 40 && Math.random() > 0.5) {
-            enemyHeavyAttack();
-            enemyAI.cooldown = 4 + Math.random() * 2;
-        } else {
-            enemyAttack();
-            enemyAI.cooldown = 2.5 + Math.random() * 2;
-        }
-    }
-}
-
-/* ============================================
-   结局序列
-   ============================================ */
-async function endingSequence() {
-    STATE.phase = 'ENDING';
-    STATE.inputBlocked = true;
-    DOM.hud.classList.remove('visible');
-
-    await delay(1000);
-
-    // 最终暗黑光束
-    DOM.vignette.style.background = 'radial-gradient(ellipse at center,transparent 10%,rgba(5,0,0,0.98) 100%)';
-    playCharge(2.5);
-
-    // 暗黑能量聚集
-    for (let i = 0; i < 120; i++) {
-        emitDarkParticles(player.position, 3);
-    }
-
-    // 摄像机缓慢推近玩家脸部
-    setCameraPos(new THREE.Vector3(player.position.x + 1, 3, player.position.z + 3), new THREE.Vector3(player.position.x, 2.5, player.position.z));
-    await delay(1500);
-
-    // 镜头特写
-    setCameraPos(new THREE.Vector3(player.position.x + 0.5, 2.8, player.position.z + 1.5), new THREE.Vector3(player.position.x, 2.6, player.position.z));
-    await delay(500);
-
-    showPhaseText('OBLITERATE', '#8b0000', 1500);
-    setSlowMo(0.1, 1200);
-
-    await delay(600);
-
-    // 最终光束
-    STATE.slowMo = 1;
-    flashScreen('#1a0000', 300);
-    playBeam();
-    shakeCamera(5);
-
-    // 超大暗黑光束
-    const beamStart = new THREE.Vector3(player.position.x + 0.7, 2.5, player.position.z);
-    const beamEnd = new THREE.Vector3(enemy.position.x, 2, enemy.position.z);
-    createBeam(beamStart, beamEnd, 0x3a0000, 3, 2.5);
-
-    // 额外粒子风暴
-    for (let i = 0; i < 150; i++) {
-        emitDarkParticles(enemy.position, 4);
-    }
-
-    await delay(500);
-    STATE.enemyHP = 0;
-    updateHUD();
-
-    // 敌人消散
-    enemy.traverse(child => {
-        if (child.isMesh && child.material) {
-            child.material.transparent = true;
-        }
-    });
-    for (let i = 0; i < 20; i++) {
-        enemy.traverse(child => {
-            if (child.isMesh && child.material) {
-                child.material.opacity = Math.max(0, 1 - (i / 20));
-            }
-        });
-        await delay(80);
-    }
-
-    // 大爆炸
-    flashScreen('#fff', 200);
-    playBassHit(25, 1.5, 0.7);
-    shakeCamera(6);
-    emitExplosion(enemy.position, { r: 0.6, g: 0.1, b: 0.8 }, 120);
-    createShockwave(enemy.position, 0x4444ff, 15, 1);
-    createShockwave(enemy.position, 0x8b0000, 20, 1.2);
-    addCrack(enemy.position, 0, 8);
-    addCrack(enemy.position, 0.5, 7);
-    addCrack(enemy.position, -0.5, 6);
-    addCrack(enemy.position, 1.5, 5);
-    addCrack(enemy.position, -1.5, 7);
-    addCrack(enemy.position, 2.5, 4);
-
-    // 环境反应 - 树木摇晃通过震动表现
-    shakeCamera(3);
-
-    await delay(1500);
-
-    // 恢复场景
-    DOM.vignette.style.background = 'radial-gradient(ellipse at center,transparent 50%,rgba(0,0,0,0.7) 100%)';
-
-    // 摄像机拉远
-    setCameraPos(new THREE.Vector3(0, 8, 20), new THREE.Vector3(0, 2, 0));
-    await delay(1000);
-
-    // 显示结局画面
-    DOM.endTitle.textContent = 'VICTORY';
-    DOM.endTitle.style.color = '#e63946';
-    DOM.endTitle.style.textShadow = '0 0 40px rgba(230,57,70,0.6)';
-    DOM.endSub.textContent = 'The darkness consumed all';
-    DOM.endScreen.classList.add('visible');
-}
-
-/* ============================================
-   游戏流程控制
-   ============================================ */
-async function startGame() {
-    initAudio();
-    DOM.titleScreen.classList.add('hidden');
-    DOM.uiLayer.classList.remove('interactive');
-    await delay(800);
-
-    // === 开场黑色画面 + 红色能量线 ===
-    DOM.vignette.style.background = 'radial-gradient(ellipse at center,transparent 0%,rgba(0,0,0,1) 60%)';
-    camTarget.set(0, 5, 0);
-    setCameraPos(new THREE.Vector3(0, 8, 18), new THREE.Vector3(0, 5, 0), true);
-
-    // 红色能量线闪过
-    for (let i = 0; i < 5; i++) {
-        flashScreen('rgba(230,57,70,0.4)', 60);
-        playSlash(2000 + Math.random() * 1000, 0.05);
-        await delay(150 + Math.random() * 100);
-    }
-    await delay(500);
-
-    // === 玩家出场 ===
-    DOM.vignette.style.background = 'radial-gradient(ellipse at center,transparent 40%,rgba(0,0,0,0.85) 100%)';
-    setCameraPos(new THREE.Vector3(-3, 3, 8), new THREE.Vector3(0, 2.5, 5));
-    flashScreen('rgba(230,57,70,0.3)', 150);
-
-    // 玩家能量光环闪烁
-    player.userData.auraMat.opacity = 0.3;
-    await delay(300);
-    player.userData.auraMat.opacity = 0.08;
-
-    await showDialogue('ZERO', 'This is where we fight... no holding back.', 3500);
-
-    // === 敌人闪步登场 ===
-    showSpeedLines(200);
-    playSlash(1200, 0.1);
-    flashScreen('rgba(100,100,255,0.3)', 100);
-    enemy.position.set(0, 0, -5);
-    shakeCamera(1.5);
-
-    // 地面裂纹
-    addCrack(enemy.position, 0, 3);
-    addCrack(enemy.position, 1.2, 2);
-    addCrack(enemy.position, -1, 2.5);
-
-    // 摄像机切到侧面
-    setCameraPos(new THREE.Vector3(12, 4, 0), new THREE.Vector3(0, 2, 0));
-    await delay(800);
-
-    // 风粒子效果
-    for (let i = 0; i < 40; i++) {
-        spawnParticle(
-            -15 + Math.random() * 30, Math.random() * 5, -15 + Math.random() * 30,
-            5 + Math.random() * 3, (Math.random() - 0.5) * 2, (Math.random() - 0.5) * 2,
-            0.7, 0.7, 0.8, 0.5, 1
-        );
-    }
-
-    await showDialogue('VOID', 'You dare challenge me?', 2500);
-
-    await showDialogue('ZERO', 'Come.', 1500);
-
-    // === 战斗开始 ===
-    showPhaseText('FIGHT', '#e63946', 1500);
-    flashScreen('#fff', 100);
-    playBassHit(50, 0.5, 0.5);
-    shakeCamera(2);
-
-    STATE.phase = 'FIGHTING';
-    DOM.hud.classList.add('visible');
-    camTarget.set(0, 2, 0);
-    setCameraPos(new THREE.Vector3(0, 5, 14), new THREE.Vector3(0, 2, 0));
-
-    updateMovePrompt();
-}
-
-function updateMovePrompt() {
-    if (STATE.power >= CONFIG.ultimateCost) {
-        DOM.movePrompt.innerHTML = '<span class="key">1</span> Energy Burst &nbsp; <span class="key">2</span> Flash Step &nbsp; <span class="key">3</span> Sky Combo &nbsp; <span class="key">4</span> DARK DOMAIN';
-        DOM.movePrompt.style.color = 'rgba(139,0,0,0.9)';
-    } else {
-        DOM.movePrompt.innerHTML = '<span class="key">1</span> Energy Burst &nbsp; <span class="key">2</span> Flash Step &nbsp; <span class="key">3</span> Sky Combo';
-        DOM.movePrompt.style.color = 'rgba(255,255,255,0.4)';
-    }
-}
-
-/* ============================================
-   输入处理
-   ============================================ */
-document.addEventListener('keydown', (e) => {
-    if (STATE.phase !== 'FIGHTING' || STATE.inputBlocked || STATE.sequenceActive) return;
-    if (STATE.playerHP <= 0) return;
-
-    switch (e.key) {
-        case '1':
-            energyDomainAttack();
-            break;
-        case '2':
-            flashStepCombo();
-            break;
-        case '3':
-            skyCombo();
-            break;
-        case '4':
-            if (STATE.power >= CONFIG.ultimateCost) {
-                darkDomainExpansion();
-            }
-            break;
-    }
-});
-
-// 开始按钮
-document.getElementById('start-btn').addEventListener('click', startGame);
-document.getElementById('replay-btn').addEventListener('click', () => location.reload());
-
-/* ============================================
-   角色闲置动画
-   ============================================ */
-function updateCharacterIdle(obj, time) {
-    // 呼吸动画
-    const breath = Math.sin(time * 2) * 0.02;
-    obj.position.y = breath;
-    // 轻微摇摆
-    obj.rotation.z = Math.sin(time * 1.5) * 0.01;
-}
-
-/* ============================================
-   主循环
-   ============================================ */
-const clock = new THREE.Clock();
-let elapsedTotal = 0;
-
+// --- MAIN LOOP ---
 function animate() {
     requestAnimationFrame(animate);
-    const rawDt = Math.min(clock.getDelta(), 0.05);
-    const dt = rawDt * STATE.slowMo;
-    STATE.time += dt;
-    elapsedTotal += rawDt;
+    const delta = clock.getDelta();
 
-    // 更新摄像机
-    updateCamera(dt);
+    if(!isCinematic) {
+        // Basic Movement
+        player.position.z -= (move.f - move.b) * 15 * delta;
+        player.position.x -= (move.l - move.r) * 15 * delta;
 
-    // 更新粒子
-    updateParticles(dt);
+        // Camera Follow (Dynamic)
+        const targetCam = new THREE.Vector3(player.position.x, player.position.y + 4, player.position.z + 12);
+        camera.position.lerp(targetCam, 0.1);
+        camera.lookAt(enemy.position);
 
-    // 更新临时特效
-    updateTempEffects(dt);
-
-    // 更新残影
-    updateAfterimages(dt);
-
-    // 角色闲置动画
-    if (STATE.phase !== 'TITLE') {
-        updateCharacterIdle(player, STATE.time);
-        updateCharacterIdle(enemy, STATE.time);
+        // Simple Enemy AI Tracking
+        enemy.lookAt(player.position);
     }
 
-    // 能量光环脉冲
-    if (player.userData.auraMat) {
-        const pulse = 0.08 + Math.sin(STATE.time * 3) * 0.03;
-        if (!STATE.sequenceActive) player.userData.auraMat.opacity = pulse;
-    }
-    if (enemy.userData.auraMat) {
-        const pulse = 0.06 + Math.sin(STATE.time * 2.5 + 1) * 0.03;
-        if (enemyAI.state !== 'attacking') enemy.userData.auraMat.opacity = pulse;
-    }
-
-    // 角色能量粒子
-    if (STATE.phase === 'FIGHTING' && Math.random() > 0.7) {
-        emitAuraParticles(player, { r: 0.9, g: 0.15, b: 0.1 }, 1);
-        emitAuraParticles(enemy, { r: 0.3, g: 0.3, b: 0.9 }, 1);
-    }
-
-    // 战斗逻辑
-    if (STATE.phase === 'FIGHTING') {
-        // 能量积累
-        if (!STATE.sequenceActive) {
-            STATE.power = Math.min(CONFIG.ultimateCost, STATE.power + CONFIG.powerPerSecond * dt);
-            updateHUD();
-            updateMovePrompt();
-        }
-
-        // 敌人 AI
-        updateEnemyAI(dt);
-
-        // 检查胜负
-        if (STATE.enemyHP <= 0 && STATE.phase === 'FIGHTING') {
-            endingSequence();
-        }
-        if (STATE.playerHP <= 0 && STATE.phase === 'FIGHTING') {
-            STATE.phase = 'ENDING';
-            STATE.inputBlocked = true;
-            DOM.hud.classList.remove('visible');
-            setTimeout(() => {
-                DOM.endTitle.textContent = 'DEFEAT';
-                DOM.endTitle.style.color = '#6666ff';
-                DOM.endTitle.style.textShadow = '0 0 40px rgba(100,100,255,0.6)';
-                DOM.endSub.textContent = 'The darkness was not enough';
-                DOM.endScreen.classList.add('visible');
-            }, 1500);
-        }
-    }
-
-    // Bloom 强度动态调整
-    if (STATE.sequenceActive) {
-        bloomPass.strength = 2.0 + Math.sin(STATE.time * 8) * 0.5;
-    } else {
-        bloomPass.strength += (1.5 - bloomPass.strength) * 0.05;
-    }
-
-    // 树木轻微摇摆
-    trees.forEach((tree, i) => {
-        tree.rotation.z = Math.sin(elapsedTotal * 0.8 + i) * 0.02;
-    });
-
-    // 渲染
-    composer.render();
+    renderer.render(scene, camera);
 }
 
-/* ============================================
-   窗口大小调整
-   ============================================ */
-window.addEventListener('resize', () => {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    composer.setSize(window.innerWidth, window.innerHeight);
-    particleMat.uniforms.uPixelRatio.value = renderer.getPixelRatio();
-});
-
-/* ============================================
-   初始化 - 标题画面背景粒子
-   ============================================ */
-function titleAmbience() {
-    if (STATE.phase === 'TITLE') {
-        for (let i = 0; i < 2; i++) {
-            spawnParticle(
-                (Math.random() - 0.5) * 30, Math.random() * 10, (Math.random() - 0.5) * 30,
-                (Math.random() - 0.5) * 0.5, 0.5 + Math.random(), (Math.random() - 0.5) * 0.5,
-                0.9, 0.1, 0.05, 0.8, 1.5
-            );
-        }
-    }
-    setTimeout(titleAmbience, 100);
-}
-titleAmbience();
-
-// 启动渲染循环
-animate();
-
+init();
 </script>
 </body>
 </html>
